@@ -1,4 +1,5 @@
 #include "packet/network_interface.h"
+#include "packet/port.h"
 #include "log.h"
 #include "log_network.h"
 
@@ -6,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include <inttypes.h>
 
@@ -24,12 +26,18 @@
 #include <net/if_var.h>
 #include <net/if_vlan_var.h>
 #elif __linux__
+#include <netpacket/packet.h>
+#include <linux/filter.h>
 #include <linux/if_link.h>
 #include <linux/if_vlan.h>
 #include <linux/sockios.h>
 #endif
 
 #include <ifaddrs.h>
+
+
+#define NETIF_SELECT_WAIT_SECS              0
+#define NETIF_SELECT_WAIT_USECS             100
 
 #define INADDR(x)   ((struct sockaddr_in  *) x)
 #define INADDR6(x)  ((struct sockaddr_in6 *) x)
@@ -42,20 +50,25 @@ static vlan_t       *netif_create_vlan(void);
 static ipv4_alias_t *netif_create_ipv4_alias(void);
 static ipv6_alias_t *netif_create_ipv6_alias(void);
 
+
+static bool netif_clear_receive_buffer(netif_t *netif);
+
 bool
 netif_init(netif_t *netif, const char *name)
 {
     bool                        result = true;
-    int                         sockfd;
     struct ifaddrs             *ifas;
     struct ifaddrs             *ifa;
-    struct ifreq                ifr;
 
 #if __FreeBSD__
-    struct vlanreq              vreq;
+    struct ifreq                ifr;            /* ioctl call to get VID */
+    struct vlanreq              vreq;           /* ioctl call to get VID */
 #elif __linux__
+    struct ifreq                ifr;            /* ioctl call to get MAC address*/
     struct rtnl_link_stats     *stats;
-    struct vlan_ioctl_args      ifv;
+    struct vlan_ioctl_args      ifv;            /* ioctl call to get VID */
+    struct sockaddr_ll          addr;           /* to bind packet socket to interface */
+    struct sockaddr_in          dummy_addr;     /* to bind dummy socket to interface */
 #endif
 
     
@@ -67,9 +80,17 @@ netif_init(netif_t *netif, const char *name)
     netif->vlan = NULL;
     netif->ipv4 = NULL;
     netif->ipv6 = NULL;
+
+    /*** get the index of the interface ***/
+    netif->index = if_nametoindex(netif->name);
+
+    if (netif->index == 0) {
+        LOG_PRINTLN(LOG_NETWORK_INTERFACE, LOG_ERROR, ("interface '%s' is not known", netif->name));
+        return false;
+    }
     
-    /* create socket (required for ioctl) */
-    if((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+    /* create socket */
+    if ((netif->socket = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {
         LOG_ERRNO(LOG_NETWORK_INTERFACE, LOG_ERROR, errno, ("socket failed"));
         return false;
     }
@@ -116,14 +137,15 @@ netif_init(netif_t *netif, const char *name)
                                 LOG_PRINTLN(LOG_NETWORK_INTERFACE, LOG_DEBUG, ("tx packet: %" PRIu32 " rx packet: %" PRIu32 " tx bytes: %" PRIu32 " rx bytes: %" PRIu32,
                                                                                stats->tx_packets, stats->rx_packets, stats->tx_bytes, stats->rx_bytes));
 
+                                /* get MAC address, see netdevice(7) */
                                 bzero((char *) &ifr, sizeof(ifr));
                                 strncpy(ifr.ifr_name, netif->name, NETIF_NAME_SIZE);
-                                if (ioctl(sockfd, SIOCGIFHWADDR, &ifr) != -1) {
+                                if (ioctl(netif->socket, SIOCGIFHWADDR, &ifr) != -1) {
                                     netif_add_mac_address(netif,   MAC_ADDRESS(LLADDR(LADDR(ifr.ifr_hwaddr.sa_data))));
                                     bzero((char *) &ifv, sizeof(ifv));
                                     ifv.cmd = GET_VLAN_VID_CMD;
                                     strncpy(ifv.device1, netif->name, sizeof(ifv.device1));
-                                    if (ioctl(sockfd, SIOCGIFVLAN, &ifv) != -1) {
+                                    if (ioctl(netif->socket, SIOCGIFVLAN, &ifv) != -1) {
                                         netif_add_vid(netif, ifv.u.VID);
                                     }
                                 } else {
@@ -138,6 +160,45 @@ netif_init(netif_t *netif, const char *name)
         }
     }
     
+
+    /* bind packet socket to interface */
+    bzero(&addr, sizeof(addr));
+    addr.sll_family   = AF_PACKET;
+    addr.sll_protocol = htons(ETH_P_ALL);
+    addr.sll_ifindex  = netif->index;
+
+    if (bind(netif->socket, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
+        close(netif->socket);
+        LOG_ERRNO(LOG_NETWORK_INTERFACE, LOG_ERROR, errno, ("can't bind packet socket to interface"));
+        return false;
+    }
+
+    /* create dummy socket ***/
+    if ((netif->dummy_socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        close(netif->socket);
+        LOG_ERRNO(LOG_NETWORK_INTERFACE, LOG_ERROR, errno, ("can't create dummy socket"));
+        return false;
+    }
+
+    /* bind dummy socket to interface */
+    bzero(&dummy_addr, sizeof(dummy_addr));
+    dummy_addr.sin_family      = AF_INET;
+    dummy_addr.sin_addr.s_addr = netif->ipv4->address.addr32;
+    dummy_addr.sin_port        = htons(PORT_PTP2_GENERAL);
+
+    if (bind(netif->dummy_socket, (struct sockaddr *) &dummy_addr, sizeof(dummy_addr)) < 0) {
+        close(netif->socket);
+        close(netif->dummy_socket);
+        LOG_ERRNO(LOG_NETWORK_INTERFACE, LOG_ERROR, errno, ("can't bind dummy socket to interface"));
+        return false;
+    }
+
+    /* clear receive buffer */
+    if (!netif_clear_receive_buffer(netif)) {
+        return false;
+    }
+
+
 netif_init_exit:
     freeifaddrs(ifas);
     
@@ -206,10 +267,26 @@ netif_add_ipv4_address(netif_t *netif, const ipv4_address_t *address, const ipv4
         LOG_PRINTLN(LOG_NETWORK_INTERFACE, LOG_INFO, ("add_ipv4_address: broadcast = %s", broadcast_str));
     }
     
-    ipv4 = netif_create_ipv4_alias();
-    ipv4->next  = netif->ipv4;
-    netif->ipv4 = ipv4;
+    /**
+     * Concatinate:
+     *    _____________      __________________
+     *   |             |    |                  |
+     *   | netif->ipv4 |===>| old ipv4 or NULL |
+     *   |_____________|    |__________________|
+     *    _____________      __________      __________________
+     *   |             |    |          |    |                  |
+     *   | netif->ipv4 |===>| new ipv4 |===>| old ipv4 or NULL |
+     *   |_____________|    |__________|    |__________________|
+     */
+    ipv4            = netif_create_ipv4_alias();
+    ipv4->next      = netif->ipv4;
+    netif->ipv4     = ipv4;
     
+    ipv4->address   = address   != NULL ? *address   : IPV4_ADDRESS_NULL;
+    ipv4->netmask   = netmask   != NULL ? *netmask   : IPV4_ADDRESS_NULL;
+    ipv4->broadcast = broadcast != NULL ? *broadcast : IPV4_ADDRESS_NULL;
+    ipv4->gateway   = gateway   != NULL ? *gateway   : IPV4_ADDRESS_NULL;
+
     return true;
 }
 
@@ -225,9 +302,24 @@ netif_add_ipv6_address(netif_t *netif, const ipv6_address_t *address, const ipv6
         LOG_PRINTLN(LOG_NETWORK_INTERFACE, LOG_INFO, ("add_ipv6_address:   netmask = %s", netmask_str));
     }
     
-    ipv6 = netif_create_ipv6_alias();
-    ipv6->next  = netif->ipv6;
-    netif->ipv6 = ipv6;
+    /**
+     * Concatinate:
+     *    _____________      __________________
+     *   |             |    |                  |
+     *   | netif->ipv6 |===>| old ipv6 or NULL |
+     *   |_____________|    |__________________|
+     *    _____________      __________      __________________
+     *   |             |    |          |    |                  |
+     *   | netif->ipv6 |===>| new ipv6 |===>| old ipv6 or NULL |
+     *   |_____________|    |__________|    |__________________|
+     */
+    ipv6            = netif_create_ipv6_alias();
+    ipv6->next      = netif->ipv6;
+    netif->ipv6     = ipv6;
+
+    ipv6->address   = address   != NULL ? *address   : IPV6_ADDRESS_NULL;
+    ipv6->netmask   = netmask   != NULL ? *netmask   : IPV6_ADDRESS_NULL;
+    ipv6->state     = state;
     
     return true;
 }
@@ -262,3 +354,98 @@ netif_add_ipv6_alias(netif_t *netif, ipv6_alias_t *ipv6)
     return true;
 }
 
+static bool
+netif_clear_receive_buffer(netif_t *netif)
+{
+    raw_packet_t        raw_packet;
+    bool                running = true;
+    uint32_t            counter = 0;
+    ssize_t             len;
+
+    raw_packet_init(&raw_packet);
+
+    /* receive data from receive buffer until buffer is empty */
+    while (running) {
+        len = recv(netif->socket, raw_packet.data, sizeof(raw_packet.data), MSG_DONTWAIT);
+        switch (len) {
+            case -1:
+                /* no data received */
+                if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    LOG_PRINTLN(LOG_NETWORK_INTERFACE, LOG_DEBUG, ("receive buffer cleared!"));
+                    return true;
+                }
+
+                /* other errors */
+                LOG_PRINTLN(LOG_NETWORK_INTERFACE, LOG_DEBUG, ("can't clear receive buffer: %s", strerror(errno)));
+                running = false;
+                break;
+
+            case 0:
+                /* peer closed connection */
+                LOG_PRINTLN(LOG_NETWORK_INTERFACE, LOG_DEBUG, ("can't clear receive buffer: Hey! Socket should be connectionless!"));
+                running = false;
+                break;
+
+            default:
+                /* handle received data */
+                counter++;
+                LOG_PRINTLN(LOG_NETWORK_INTERFACE, LOG_DEBUG, ("receive buffer: clear frame nr. %u", counter));
+                break;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * @brief  This function is used to receive a Layer 2 RAW-Frame.
+ */
+bool
+netif_frame_receive(netif_t *netif, raw_packet_t *raw_packet)
+{
+    fd_set              readfds;  /* list of monitored file descriptors */
+    int                 numfds;   /* number of ready file descriptors */
+    struct timeval      tv = {              /* time structure used in select() */
+        .tv_sec  = NETIF_SELECT_WAIT_SECS,
+        .tv_usec = NETIF_SELECT_WAIT_USECS
+    };
+
+    FD_ZERO(&readfds);
+    FD_SET(netif->socket, &readfds);
+
+    /* wait until a "file descriptor" is ready (returns immediately after ready)
+       or wait until time is up. Return value is number of ready
+       "file descriptors", 0 (time is up) or -1 (error) */
+    numfds = select(netif->socket + 1, &readfds, NULL, NULL, &tv);
+    switch (numfds) {
+        /* error */
+        case -1:
+            LOG_PRINTLN(LOG_NETWORK_INTERFACE, LOG_ERROR, ("can't monitor socket: %s", strerror(errno)));
+            return false;
+
+        /* time up */
+        case 0:
+            break;
+
+        /* fd ready */
+        default:
+            if ((raw_packet->len = recv(netif->socket, raw_packet->data, ETH_MAX_FRAME_SIZE, 0 /* no flags */)) < 0) {
+                LOG_PRINTLN(LOG_NETWORK_INTERFACE, LOG_ERROR, ("can't receive packet: %s", strerror(errno)));
+                return false;
+            }
+            return true;
+    }
+
+    return false;
+}
+
+/**
+ * @brief  sends layer 2 frame
+ */
+void
+netif_frame_send(netif_t *netif, raw_packet_t *raw_packet)
+{
+    if (send(netif->socket, raw_packet->data, raw_packet->len, 0 /* no flags */) < 0) {
+        LOG_PRINTLN(LOG_NETWORK_INTERFACE, LOG_ERROR, ("can't send packet: %s", strerror(errno)));
+    }
+}

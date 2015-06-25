@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "packet/raw_packet.h"
 #include "packet/net_address.h"
 
 #define NETIF_NAME_SIZE             16
@@ -41,8 +42,11 @@ struct _netif_list_t {
 
 struct _netif_t {
     char                    name[NETIF_NAME_SIZE];
+    int                     index;
     mac_address_t           mac;
     uint32_t                flags;
+    int                     socket;
+    int                     dummy_socket;
     
     vlan_t                 *vlan;
     ipv4_alias_t           *ipv4;
@@ -86,6 +90,9 @@ bool        netif_add_ipv6_address  (netif_t *netif, const ipv6_address_t *addre
 bool        netif_add_vlan          (netif_t *netif, vlan_t *vlan);
 bool        netif_add_ipv4_alias    (netif_t *netif, ipv4_alias_t *ipv4);
 bool        netif_add_ipv6_alias    (netif_t *netif, ipv6_alias_t *ipv6);
+
+bool        netif_frame_receive     (netif_t *netif, raw_packet_t *raw_packet);
+void        netif_frame_send        (netif_t *netif, raw_packet_t *raw_packet);
 
 #endif
 

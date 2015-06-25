@@ -1,6 +1,7 @@
 
 #include <inttypes.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <pcap.h>
 
@@ -18,12 +19,15 @@ main(int argc, char *argv[])
     netif_t                 netif;
     pcap_t                 *pcap;
     char                    errbuf[PCAP_ERRBUF_SIZE];
-    struct pcap_pkthdr     *header;
+    struct pcap_pkthdr     *pcap_header;
     const u_char           *pkt_data;
 //    u_int                   i = 0;
     int                     res;
     raw_packet_t            raw_packet;
     packet_t               *packet;
+    header_t               *header;
+    ethernet_header_t      *ether;
+    ipv4_header_t          *ipv4;
 
     if (argc != 3) {
         printf("usage: %s ifname filename\n", argv[0]);
@@ -43,25 +47,55 @@ main(int argc, char *argv[])
     raw_packet_init(&raw_packet);
 
     /* Retrieve the packets from the file */
-    while ((res = pcap_next_ex(pcap, &header, &pkt_data)) >= 0) {
+    while ((res = pcap_next_ex(pcap, &pcap_header, &pkt_data)) >= 0) {
 
-        memcpy(raw_packet.data, pkt_data, header->caplen);
-        raw_packet.len = header->caplen;
+        memcpy(raw_packet.data, pkt_data, pcap_header->caplen);
+        raw_packet.len = pcap_header->caplen;
 
         LOG_RAW_PACKET(LOG_PCAP, LOG_INFO, &raw_packet, ("RX"));
 
         packet = packet_decode(&netif, &raw_packet);
         log_packet(packet);
 
-        bzero(&raw_packet, sizeof(raw_packet));
+        header = packet->head;
 
-        if (packet_encode(&netif, packet, &raw_packet)) {
-            LOG_PRINTLN(LOG_PCAP, LOG_INFO, ("Successfully encoded packet"));
-        } else {
-            LOG_PRINTLN(LOG_PCAP, LOG_ERROR, ("Error encoding packet"));
+        while (header->klass->type != PACKET_TYPE_ETHERNET) {
+            header = header->next;
         }
+        ether = (ethernet_header_t *) header;
+        ether->dest.addr[5] = 0x06;
 
-        LOG_RAW_PACKET(LOG_PCAP, LOG_INFO, &raw_packet, ("TX"));
+        for (int i = 0; i < 128; i++) {
+            bzero(&raw_packet, sizeof(raw_packet));
+
+            if (packet_encode(&netif, packet, &raw_packet)) {
+                LOG_PRINTLN(LOG_PCAP, LOG_INFO, ("Successfully encoded packet"));
+            } else {
+                LOG_PRINTLN(LOG_PCAP, LOG_ERROR, ("Error encoding packet"));
+            }
+
+            LOG_RAW_PACKET(LOG_PCAP, LOG_INFO, &raw_packet, ("TX"));
+
+            netif_frame_send(&netif, &raw_packet);
+
+            header = packet->head;
+
+            while (header->klass->type != PACKET_TYPE_ETHERNET) {
+                header = header->next;
+            }
+            ether = (ethernet_header_t *) header;
+            uint64_t num;
+            uint8_to_uint48(&num, ether->src.addr);
+            num = num + 1;
+            uint48_to_uint8(ether->src.addr, &num);
+
+            while (header->klass->type != PACKET_TYPE_IPV4) {
+                header = header->next;
+            }
+            ipv4 = (ipv4_header_t *) header;
+            ipv4->src.addr32 = htonl(ntohl(ipv4->src.addr32) + 1);
+            sleep(1);
+        }
 
         object_release(packet);
 //        /* print pkt timestamp and pkt len */
