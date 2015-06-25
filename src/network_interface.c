@@ -1,7 +1,8 @@
-#include "packet/network_interface.h"
-#include "packet/port.h"
+#include "network_interface.h"
 #include "log.h"
 #include "log_network.h"
+
+#include "packet/port.h"
 
 #include <stdio.h>
 #include <stdlib.h>

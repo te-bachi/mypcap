@@ -12,6 +12,7 @@ log_level_t LOG_CATEGORY_LEVEL[] = {
     [LOG_OBJECT]                        = LOG_DEBUG,
     [LOG_PCAP]                          = LOG_DEBUG,
     [LOG_NETWORK_INTERFACE]             = LOG_DEBUG,
+    [LOG_SOCKET_BPF]                    = LOG_DEBUG,
     [LOG_HEADER_STORAGE]                = LOG_DEBUG,
     [LOG_HEADER_ETHERNET]               = LOG_DEBUG,
     [LOG_HEADER_ARP]                    = LOG_DEBUG,
@@ -26,20 +27,21 @@ log_level_t LOG_CATEGORY_LEVEL[] = {
 };
 
 const char *LOG_CATEGORY_STRING[] = {
-    [LOG_OBJECT]                        = "[OBJECT                   ]",
-    [LOG_PCAP]                          = "[PCAP                     ]",
-    [LOG_NETWORK_INTERFACE]             = "[NETWORK INTERFACE        ]",
-    [LOG_HEADER_STORAGE]                = "[HEADER STORAGE           ]",
-    [LOG_HEADER_ETHERNET]               = "[HEADER ETHERNET          ]",
-    [LOG_HEADER_ARP]                    = "[HEADER ARP               ]",
-    [LOG_HEADER_IPV4]                   = "[HEADER IPv4              ]",
-    [LOG_HEADER_UDPV4]                  = "[HEADER UDPv4             ]",
-    [LOG_HEADER_ICMPV4]                 = "[HEADER ICMPv4            ]",
-    [LOG_HEADER_DNS]                    = "[HEADER DNS               ]",
-    [LOG_HEADER_PTP2]                   = "[HEADER PTP2              ]",
-    [LOG_HEADER_PTP2_ANNOUNCE]          = "[HEADER PTP2 ANNOUNCE     ]",
-    [LOG_HEADER_PTP2_SIGNALING]         = "[HEADER PTP2 SIGNALING    ]",
-    [LOG_HEADER_PTP2_SIGNALING_TLV]     = "[HEADER PTP2 SIGNALING TLV]",
+    [LOG_OBJECT]                        = "[OBJECT                    ]",
+    [LOG_PCAP]                          = "[PCAP                      ]",
+    [LOG_NETWORK_INTERFACE]             = "[NETWORK INTERFACE         ]",
+    [LOG_SOCKET_BPF]                    = "[SOCKET BPF                ]",
+    [LOG_HEADER_STORAGE]                = "[HEADER STORAGE            ]",
+    [LOG_HEADER_ETHERNET]               = "[HEADER ETHERNET           ]",
+    [LOG_HEADER_ARP]                    = "[HEADER ARP                ]",
+    [LOG_HEADER_IPV4]                   = "[HEADER IPv4               ]",
+    [LOG_HEADER_UDPV4]                  = "[HEADER UDPv4              ]",
+    [LOG_HEADER_ICMPV4]                 = "[HEADER ICMPv4             ]",
+    [LOG_HEADER_DNS]                    = "[HEADER DNS                ]",
+    [LOG_HEADER_PTP2]                   = "[HEADER PTPv2              ]",
+    [LOG_HEADER_PTP2_ANNOUNCE]          = "[HEADER PTPv2 ANNOUNCE     ]",
+    [LOG_HEADER_PTP2_SIGNALING]         = "[HEADER PTPv2 SIGNALING    ]",
+    [LOG_HEADER_PTP2_SIGNALING_TLV]     = "[HEADER PTPv2 SIGNALING TLV]",
 };
 
 const char *LOG_LEVEL_STRING[] = {

@@ -17,6 +17,7 @@ mypcap_SOURCE               = main.c \
                               log_ptp2.c \
                               ptp2_types.c \
                               network_interface.c \
+                              bpf.c \
                               packet/net_address.c \
                               packet/raw_packet.c \
                               packet/packet.c \

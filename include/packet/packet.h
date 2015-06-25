@@ -12,8 +12,9 @@ typedef uint16_t                        packet_offset_t;        /**< Offset of o
 
 #include "packet/header.h"
 #include "packet/net_address.h"
-#include "packet/network_interface.h"
 #include "packet/raw_packet.h"
+
+#include "network_interface.h"
 
 enum _packet_direction_t {
     PACKET_DIRECTION_UNKOWN,

@@ -2,8 +2,9 @@
 #define __HEADER_H__
 
 #include "packet/packet.h"
-#include "packet/network_interface.h"
 #include "packet/raw_packet.h"
+
+#include "network_interface.h"
 
 typedef struct _header_t                header_t;
 typedef enum   _header_type_t           header_type_t;
