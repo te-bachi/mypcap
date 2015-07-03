@@ -16,18 +16,19 @@
 int
 main(int argc, char *argv[])
 {
-    netif_t                 netif;
-    pcap_t                 *pcap;
-    char                    errbuf[PCAP_ERRBUF_SIZE];
-    struct pcap_pkthdr     *pcap_header;
-    const u_char           *pkt_data;
+    netif_t                         netif;
+    pcap_t                         *pcap;
+    char                            errbuf[PCAP_ERRBUF_SIZE];
+    struct pcap_pkthdr             *pcap_header;
+    const u_char                   *pkt_data;
 //    u_int                   i = 0;
-    int                     res;
-    raw_packet_t            raw_packet;
-    packet_t               *packet;
-    header_t               *header;
-    ethernet_header_t      *ether;
-    ipv4_header_t          *ipv4;
+    int                             res;
+    raw_packet_t                    raw_packet;
+    packet_t                       *packet;
+    header_t                       *header;
+    ethernet_header_t              *ether;
+    ipv4_header_t                  *ipv4;
+    ptp2_signaling_tlv_header_t    *ptp2_signaling_tlv;
 
     if (argc != 3) {
         printf("usage: %s ifname filename\n", argv[0]);
@@ -65,19 +66,51 @@ main(int argc, char *argv[])
         ether = (ethernet_header_t *) header;
         ether->dest.addr[5] = 0x06;
 
-        for (int i = 0; i < 128; i++) {
+        for (int i = 0; i < 1024; i++) {
             bzero(&raw_packet, sizeof(raw_packet));
 
-            if (packet_encode(&netif, packet, &raw_packet)) {
-                LOG_PRINTLN(LOG_PCAP, LOG_INFO, ("Successfully encoded packet"));
-            } else {
-                LOG_PRINTLN(LOG_PCAP, LOG_ERROR, ("Error encoding packet"));
+            for (int k = 0; k < 3; k++) {
+
+                /* modify messageType */
+                header = packet->head;
+
+                while (header->klass->type != PACKET_TYPE_PTP2_SIGNALING_TLV) {
+                    header = header->next;
+                }
+                ptp2_signaling_tlv = (ptp2_signaling_tlv_header_t *) header;
+
+                ptp2_signaling_tlv->request_unicast.log_period = 0;
+                ptp2_signaling_tlv->request_unicast.duration = 300;
+
+                switch (k) {
+                    case 0:     ptp2_signaling_tlv->request_unicast.msg.type = PTP2_MESSAGE_TYPE_SYNC;
+                                break;
+
+                    case 1:     ptp2_signaling_tlv->request_unicast.msg.type = PTP2_MESSAGE_TYPE_ANNOUNCE;
+                                break;
+
+                    case 2:     ptp2_signaling_tlv->request_unicast.msg.type = PTP2_MESSAGE_TYPE_DELAY_RESP;
+                                break;
+
+                    default:    printf("=== NOOOOO ======================================="); break;
+                }
+
+                /* encode */
+                if (packet_encode(&netif, packet, &raw_packet)) {
+                    LOG_PRINTLN(LOG_PCAP, LOG_INFO, ("Successfully encoded packet"));
+                } else {
+                    LOG_PRINTLN(LOG_PCAP, LOG_ERROR, ("Error encoding packet"));
+                }
+
+                LOG_RAW_PACKET(LOG_PCAP, LOG_INFO, &raw_packet, ("TX"));
+
+                /* send */
+                netif_frame_send(&netif, &raw_packet);
+
+                //usleep(100);
             }
 
-            LOG_RAW_PACKET(LOG_PCAP, LOG_INFO, &raw_packet, ("TX"));
-
-            netif_frame_send(&netif, &raw_packet);
-
+            /* modify MAC and IP address */
             header = packet->head;
 
             while (header->klass->type != PACKET_TYPE_ETHERNET) {
@@ -94,7 +127,6 @@ main(int argc, char *argv[])
             }
             ipv4 = (ipv4_header_t *) header;
             ipv4->src.addr32 = htonl(ntohl(ipv4->src.addr32) + 1);
-            sleep(1);
         }
 
         object_release(packet);
@@ -117,6 +149,5 @@ main(int argc, char *argv[])
         printf("Error reading the packets: %s\n", pcap_geterr(pcap));
     }
 
-    return 0;
     return 0;
 }

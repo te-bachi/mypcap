@@ -168,6 +168,8 @@ udpv4_header_decode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, 
     
     switch (low_port) {
         case PORT_DNS:      udpv4->header.next = dns_header_decode(netif, packet, raw_packet, offset + UDPV4_HEADER_LEN);       break;
+        case PORT_PTP2_EVENT:
+        case PORT_PTP2_GENERAL:     udpv4->header.next = ptp2_header_decode(netif, packet, raw_packet, offset + UDPV4_HEADER_LEN);      break;
         default:            break;
     }
     

@@ -10,14 +10,14 @@ bool log_enabled = true;
 
 log_level_t LOG_CATEGORY_LEVEL[] = {
     [LOG_OBJECT]                        = LOG_DEBUG,
-    [LOG_PCAP]                          = LOG_DEBUG,
+    [LOG_PCAP]                          = LOG_ERROR,
     [LOG_NETWORK_INTERFACE]             = LOG_DEBUG,
     [LOG_SOCKET_BPF]                    = LOG_DEBUG,
     [LOG_HEADER_STORAGE]                = LOG_DEBUG,
     [LOG_HEADER_ETHERNET]               = LOG_DEBUG,
     [LOG_HEADER_ARP]                    = LOG_DEBUG,
     [LOG_HEADER_IPV4]                   = LOG_DEBUG,
-    [LOG_HEADER_UDPV4]                  = LOG_DEBUG,
+    [LOG_HEADER_UDPV4]                  = LOG_ERROR,
     [LOG_HEADER_ICMPV4]                 = LOG_DEBUG,
     [LOG_HEADER_DNS]                    = LOG_DEBUG,
     [LOG_HEADER_PTP2]                   = LOG_DEBUG,
