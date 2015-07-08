@@ -26,7 +26,10 @@ enum _header_type_t {
     PACKET_TYPE_TCPV6,
     PACKET_TYPE_DNS,
     PACKET_TYPE_PTP2,
+    PACKET_TYPE_PTP2_SYNC,
     PACKET_TYPE_PTP2_ANNOUNCE,
+    PACKET_TYPE_PTP2_DELAY_REQ,
+    PACKET_TYPE_PTP2_DELAY_RESP,
     PACKET_TYPE_PTP2_SIGNALING,
     PACKET_TYPE_PTP2_SIGNALING_TLV,
     PACKET_TYPE_IGNORE,
@@ -76,7 +79,10 @@ struct _header_t {
 #include "packet/icmpv4_header.h"
 #include "packet/dns_header.h"
 #include "packet/ptp2_header.h"
+#include "packet/ptp2_sync_header.h"
 #include "packet/ptp2_announce_header.h"
+#include "packet/ptp2_delay_req_header.h"
+#include "packet/ptp2_delay_resp_header.h"
 #include "packet/ptp2_signaling_header.h"
 #include "packet/ptp2_signaling_tlv_header.h"
 

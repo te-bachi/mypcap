@@ -97,8 +97,8 @@ ptp2_header_encode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, p
     uint16_to_uint8(&(raw_packet->data[offset + PTP2_HEADER_OFFSET_FLAGS]),            &(ptp2->flags));                                                         /**< flagField */
     int64_to_uint8 (&(raw_packet->data[offset + PTP2_HEADER_OFFSET_CORRECTION]),       &(ptp2->correction.nanoseconds));                                        /**< correctionField */
     uint16_to_uint8(&(raw_packet->data[offset + PTP2_HEADER_OFFSET_SEQ_ID]),           &(ptp2->seq_id));                                                        /**< sequenceId */
-    uint16_to_uint8(&(raw_packet->data[offset + PTP2_HEADER_OFFSET_SRC_PORT_NUMBER]),  &(ptp2->src_port_identity.port_number));                                 /**< sourcePortNumber */
     memcpy(&(raw_packet->data[offset + PTP2_HEADER_OFFSET_SRC_CLOCK_IDENTITY]),        &(ptp2->src_port_identity.clock_identity), PTP2_CLOCK_IDENTITY_LEN);     /**< sourceClockIdentity */
+    uint16_to_uint8(&(raw_packet->data[offset + PTP2_HEADER_OFFSET_SRC_PORT_NUMBER]),  &(ptp2->src_port_identity.port_number));                                 /**< sourcePortNumber */
     
     return len;
 }
@@ -149,8 +149,8 @@ ptp2_header_decode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, p
     uint8_to_uint16(&(ptp2->flags),                             &(raw_packet->data[offset + PTP2_HEADER_OFFSET_FLAGS]));                                        /**< flagField */
     uint8_to_int64 (&(ptp2->correction.nanoseconds),            &(raw_packet->data[offset + PTP2_HEADER_OFFSET_CORRECTION]));                                   /**< correctionField */
     uint8_to_uint16(&(ptp2->seq_id),                            &(raw_packet->data[offset + PTP2_HEADER_OFFSET_SEQ_ID]));                                       /**< sequenceId */
-    uint8_to_uint16(&(ptp2->src_port_identity.port_number),     &(raw_packet->data[offset + PTP2_HEADER_OFFSET_SRC_PORT_NUMBER]));                              /**< sourcePortNumber */
     memcpy(&(ptp2->src_port_identity.clock_identity),           &(raw_packet->data[offset + PTP2_HEADER_OFFSET_SRC_CLOCK_IDENTITY]), PTP2_CLOCK_IDENTITY_LEN);  /**< sourceClockIdentity */
+    uint8_to_uint16(&(ptp2->src_port_identity.port_number),     &(raw_packet->data[offset + PTP2_HEADER_OFFSET_SRC_PORT_NUMBER]));                              /**< sourcePortNumber */
 
     return (header_t *) ptp2;
 }

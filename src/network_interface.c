@@ -174,24 +174,26 @@ netif_init(netif_t *netif, const char *name)
         return false;
     }
 
-    /* create dummy socket ***/
-    if ((netif->dummy_socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        close(netif->socket);
-        LOG_ERRNO(LOG_NETWORK_INTERFACE, LOG_ERROR, errno, ("can't create dummy socket"));
-        return false;
-    }
+    if (netif->ipv4 != NULL) {
+        /* create dummy socket ***/
+        if ((netif->dummy_socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+            close(netif->socket);
+            LOG_ERRNO(LOG_NETWORK_INTERFACE, LOG_ERROR, errno, ("can't create dummy socket"));
+            return false;
+        }
 
-    /* bind dummy socket to interface */
-    bzero(&dummy_addr, sizeof(dummy_addr));
-    dummy_addr.sin_family      = AF_INET;
-    dummy_addr.sin_addr.s_addr = netif->ipv4->address.addr32;
-    dummy_addr.sin_port        = htons(PORT_PTP2_GENERAL);
+        /* bind dummy socket to interface */
+        bzero(&dummy_addr, sizeof(dummy_addr));
+        dummy_addr.sin_family      = AF_INET;
+        dummy_addr.sin_addr.s_addr = netif->ipv4->address.addr32;
+        dummy_addr.sin_port        = htons(PORT_PTP2_GENERAL);
 
-    if (bind(netif->dummy_socket, (struct sockaddr *) &dummy_addr, sizeof(dummy_addr)) < 0) {
-        close(netif->socket);
-        close(netif->dummy_socket);
-        LOG_ERRNO(LOG_NETWORK_INTERFACE, LOG_ERROR, errno, ("can't bind dummy socket to interface"));
-        return false;
+        if (bind(netif->dummy_socket, (struct sockaddr *) &dummy_addr, sizeof(dummy_addr)) < 0) {
+            close(netif->socket);
+            close(netif->dummy_socket);
+            LOG_ERRNO(LOG_NETWORK_INTERFACE, LOG_ERROR, errno, ("can't bind dummy socket to interface"));
+            return false;
+        }
     }
 
     /* clear receive buffer */

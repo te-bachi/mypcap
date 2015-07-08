@@ -16,7 +16,7 @@ struct _ptp2_signaling_header_t {
     header_t                            header;
 
     ptp2_port_identity_t                target_port_identity;
-} ;
+};
 
 ptp2_signaling_header_t    *ptp2_signaling_header_new       (void);
 void                        ptp2_signaling_header_free      (header_t *header);

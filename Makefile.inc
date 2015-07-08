@@ -46,7 +46,7 @@ $(foreach source,$($(1)_SOURCE),$(eval $(call OBJECT_template,$(1),src,source)))
 
 $(1): obj/$(1) $($(1)_OBJECT)
 	@echo "[LD] $$@"
-	@$(CC) -o $$@ $($(1)_OBJECT) $(GLOBAL_LDFLAGS) $($(1)_LDFLAGS)
+	@$(CC) -o $$@ $($(1)_OBJECT) $(GLOBAL_CFLAGS) $($(1)_CFLAGS) $(GLOBAL_LDFLAGS) $($(1)_LDFLAGS)
 
 $(1)_clean:
 	@echo "[CLEAR $(1)]"

@@ -9,21 +9,24 @@
 bool log_enabled = true;
 
 log_level_t LOG_CATEGORY_LEVEL[] = {
-    [LOG_OBJECT]                        = LOG_DEBUG,
+    [LOG_OBJECT]                        = LOG_INFO,
     [LOG_PCAP]                          = LOG_ERROR,
-    [LOG_NETWORK_INTERFACE]             = LOG_DEBUG,
-    [LOG_SOCKET_BPF]                    = LOG_DEBUG,
-    [LOG_HEADER_STORAGE]                = LOG_DEBUG,
-    [LOG_HEADER_ETHERNET]               = LOG_DEBUG,
-    [LOG_HEADER_ARP]                    = LOG_DEBUG,
-    [LOG_HEADER_IPV4]                   = LOG_DEBUG,
+    [LOG_NETWORK_INTERFACE]             = LOG_INFO,
+    [LOG_SOCKET_BPF]                    = LOG_INFO,
+    [LOG_HEADER_STORAGE]                = LOG_INFO,
+    [LOG_HEADER_ETHERNET]               = LOG_INFO,
+    [LOG_HEADER_ARP]                    = LOG_INFO,
+    [LOG_HEADER_IPV4]                   = LOG_INFO,
     [LOG_HEADER_UDPV4]                  = LOG_ERROR,
-    [LOG_HEADER_ICMPV4]                 = LOG_DEBUG,
-    [LOG_HEADER_DNS]                    = LOG_DEBUG,
-    [LOG_HEADER_PTP2]                   = LOG_DEBUG,
-    [LOG_HEADER_PTP2_ANNOUNCE]          = LOG_DEBUG,
-    [LOG_HEADER_PTP2_SIGNALING]         = LOG_DEBUG,
-    [LOG_HEADER_PTP2_SIGNALING_TLV]     = LOG_DEBUG,
+    [LOG_HEADER_ICMPV4]                 = LOG_INFO,
+    [LOG_HEADER_DNS]                    = LOG_INFO,
+    [LOG_HEADER_PTP2]                   = LOG_INFO,
+    [LOG_HEADER_PTP2_SYNC]              = LOG_INFO,
+    [LOG_HEADER_PTP2_ANNOUNCE]          = LOG_INFO,
+    [LOG_HEADER_PTP2_DELAY_REQ]         = LOG_INFO,
+    [LOG_HEADER_PTP2_DELAY_RESP]        = LOG_INFO,
+    [LOG_HEADER_PTP2_SIGNALING]         = LOG_INFO,
+    [LOG_HEADER_PTP2_SIGNALING_TLV]     = LOG_INFO,
 };
 
 const char *LOG_CATEGORY_STRING[] = {
@@ -39,7 +42,10 @@ const char *LOG_CATEGORY_STRING[] = {
     [LOG_HEADER_ICMPV4]                 = "[HEADER ICMPv4             ]",
     [LOG_HEADER_DNS]                    = "[HEADER DNS                ]",
     [LOG_HEADER_PTP2]                   = "[HEADER PTPv2              ]",
+    [LOG_HEADER_PTP2_SYNC]              = "[HEADER PTPv2 SYNC         ]",
     [LOG_HEADER_PTP2_ANNOUNCE]          = "[HEADER PTPv2 ANNOUNCE     ]",
+    [LOG_HEADER_PTP2_DELAY_REQ]         = "[HEADER PTPv2 DELAY REQ    ]",
+    [LOG_HEADER_PTP2_DELAY_RESP]        = "[HEADER PTPv2 DELAY RESP   ]",
     [LOG_HEADER_PTP2_SIGNALING]         = "[HEADER PTPv2 SIGNALING    ]",
     [LOG_HEADER_PTP2_SIGNALING_TLV]     = "[HEADER PTPv2 SIGNALING TLV]",
 };

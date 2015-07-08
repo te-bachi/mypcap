@@ -107,7 +107,7 @@ main(int argc, char *argv[])
                 /* send */
                 netif_frame_send(&netif, &raw_packet);
 
-                //usleep(100);
+                //usleep(150);
             }
 
             /* modify MAC and IP address */

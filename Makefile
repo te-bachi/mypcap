@@ -2,7 +2,7 @@
 PROGRAMS                    = mypcap
 
 CC                          = gcc
-GLOBAL_CFLAGS               = -O0 -pipe -Wall -ggdb -std=gnu99 -fms-extensions -Iinclude -Wmissing-prototypes -Wno-uninitialized -Wstrict-prototypes
+GLOBAL_CFLAGS               = -O3 -flto -pipe -Wall -ggdb -std=gnu99 -fms-extensions -Iinclude -Wmissing-prototypes -Wno-uninitialized -Wstrict-prototypes
 GLOBAL_LDFLAGS              = -lpcap -lm
 
 ### MYPCAP ####################################################################
@@ -28,7 +28,10 @@ mypcap_SOURCE               = main.c \
                               packet/udpv4_header.c \
                               packet/dns_header.c \
                               packet/ptp2_header.c \
+                              packet/ptp2_sync_header.c \
                               packet/ptp2_announce_header.c \
+                              packet/ptp2_delay_req_header.c \
+                              packet/ptp2_delay_resp_header.c \
                               packet/ptp2_signaling_header.c \
                               packet/ptp2_signaling_tlv_header.c
                               
