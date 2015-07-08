@@ -2,6 +2,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #include <pcap.h>
 
@@ -10,8 +11,90 @@
 
 #include "packet/raw_packet.h"
 #include "packet/packet.h"
+#include "packet/port.h"
 
 #define LINE_LEN 16
+
+ptp2_clock_identity_t   create_clock_identity(mac_address_t *mac);
+bool                    send_delayed_ptp2_delay_req(netif_t *netif, mac_address_t *slave_mac, ipv4_address_t *slave_ipv4);
+
+ptp2_clock_identity_t
+create_clock_identity(mac_address_t *mac)
+{
+    ptp2_clock_identity_t clock_identity = { .raw = { mac->addr[0], mac->addr[1], mac->addr[2], 0xff, 0xfe, mac->addr[3], mac->addr[4], mac->addr[5]} };
+    return clock_identity;
+}
+
+bool
+send_delayed_ptp2_delay_req(netif_t *netif, mac_address_t *slave_mac, ipv4_address_t *slave_ipv4)
+{
+    raw_packet_t                raw_packet;
+    packet_t                   *packet          = packet_new();
+    ethernet_header_t          *ether           = ethernet_header_new();
+    ipv4_header_t              *ipv4            = ipv4_header_new();
+    udpv4_header_t             *udpv4           = udpv4_header_new();
+    ptp2_header_t              *ptp2            = ptp2_header_new();
+    ptp2_delay_req_header_t    *ptp2_delay_req  = ptp2_delay_req_header_new();
+
+    packet->head        = (header_t *) ether;
+    ether->header.next  = (header_t *) ipv4;
+    ipv4->header.next   = (header_t *) udpv4;
+    udpv4->header.next  = (header_t *) ptp2;
+    ptp2->header.next   = (header_t *) ptp2_delay_req;
+
+    /* Ethernet */
+    ether->dest             = netif->mac;
+    ether->src              = *slave_mac;
+    ether->type             = ETHERTYPE_IPV4;
+
+    /* IPv4 */
+    ipv4->version           = IPV4_HEADER_VERSION;
+    ipv4->ihl               = IPV4_HEADER_IHL;
+    ipv4->ecn               = 0;
+    ipv4->dscp              = 0;
+    ipv4->fragment_offset   = 0;
+    ipv4->more_fragments    = 0;
+    ipv4->dont_fragment     = 0;
+    ipv4->reserved          = 0;
+    ipv4->ttl               = 128;
+    ipv4->protocol          = IPV4_PROTOCOL_UDP;
+    ipv4->src               = *slave_ipv4;
+    ipv4->dest              = netif->ipv4->address;
+
+    /* UDPv4 */
+    udpv4->src_port         = PORT_PTP2_GENERAL;
+    udpv4->dest_port        = PORT_PTP2_GENERAL;
+
+    /* PTPv2 */
+    ptp2->transport                             = 0;
+    ptp2->msg_type                              = PTP2_MESSAGE_TYPE_DELAY_REQ;
+    ptp2->version                               = 2;
+    ptp2->msg_len                               = PTP2_HEADER_LEN + PTP2_DELAY_REQ_HEADER_LEN;
+    ptp2->domain_number                         = 4;
+    ptp2->flags                                 = PTP2_FLAG_UNICAST;
+    ptp2->correction                            = PTP2_CORRECTION_NULL;
+    ptp2->src_port_identity.clock_identity      = create_clock_identity(slave_mac);
+    ptp2->src_port_identity.port_number         = 1;
+    ptp2->seq_id                                = 1;
+    ptp2->control                               = PTP2_CONTROL_DELAY_REQ;
+    ptp2->log_msg_interval                      = 1;
+
+    /* PTPv2 delay req */
+    ptp2_delay_req->origin_timestamp.seconds        = 123;
+    ptp2_delay_req->origin_timestamp.nanoseconds    = 456;
+
+    /* encode */
+    if (packet_encode(netif, packet, &raw_packet)) {
+        LOG_PRINTLN(LOG_PCAP, LOG_INFO, ("Successfully encoded packet"));
+    } else {
+        LOG_PRINTLN(LOG_PCAP, LOG_ERROR, ("Error encoding packet"));
+    }
+
+    /* send */
+    netif_frame_send(netif, &raw_packet);
+
+    return true;
+}
 
 int
 main(int argc, char *argv[])
@@ -24,11 +107,15 @@ main(int argc, char *argv[])
 //    u_int                   i = 0;
     int                             res;
     raw_packet_t                    raw_packet;
-    packet_t                       *packet;
+    packet_t                       *packet_sent;
+    packet_t                       *packet_received;
     header_t                       *header;
     ethernet_header_t              *ether;
     ipv4_header_t                  *ipv4;
     ptp2_signaling_tlv_header_t    *ptp2_signaling_tlv;
+
+    mac_address_t                  *slave_mac;
+    ipv4_address_t                 *slave_ipv4;
 
     if (argc != 3) {
         printf("usage: %s ifname filename\n", argv[0]);
@@ -55,10 +142,10 @@ main(int argc, char *argv[])
 
         LOG_RAW_PACKET(LOG_PCAP, LOG_INFO, &raw_packet, ("RX"));
 
-        packet = packet_decode(&netif, &raw_packet);
-        log_packet(packet);
+        packet_sent = packet_decode(&netif, &raw_packet);
+        log_packet(packet_sent);
 
-        header = packet->head;
+        header = packet_sent->head;
 
         while (header->klass->type != PACKET_TYPE_ETHERNET) {
             header = header->next;
@@ -66,13 +153,28 @@ main(int argc, char *argv[])
         ether = (ethernet_header_t *) header;
         ether->dest.addr[5] = 0x06;
 
-        for (int i = 0; i < 1024; i++) {
+        for (int i = 0; i < 3; i++) {
             bzero(&raw_packet, sizeof(raw_packet));
+
+            /* get MAC and IPv4 address */
+            header = packet_sent->head;
+
+            while (header->klass->type != PACKET_TYPE_ETHERNET) {
+                header = header->next;
+            }
+            ether = (ethernet_header_t *) header;
+            slave_mac = &(ether->src);
+
+            while (header->klass->type != PACKET_TYPE_IPV4) {
+                header = header->next;
+            }
+            ipv4 = (ipv4_header_t *) header;
+            slave_ipv4 = &(ipv4->src);
 
             for (int k = 0; k < 3; k++) {
 
                 /* modify messageType */
-                header = packet->head;
+                header = packet_sent->head;
 
                 while (header->klass->type != PACKET_TYPE_PTP2_SIGNALING_TLV) {
                     header = header->next;
@@ -96,40 +198,44 @@ main(int argc, char *argv[])
                 }
 
                 /* encode */
-                if (packet_encode(&netif, packet, &raw_packet)) {
+                if (packet_encode(&netif, packet_sent, &raw_packet)) {
                     LOG_PRINTLN(LOG_PCAP, LOG_INFO, ("Successfully encoded packet"));
                 } else {
                     LOG_PRINTLN(LOG_PCAP, LOG_ERROR, ("Error encoding packet"));
                 }
 
-                LOG_RAW_PACKET(LOG_PCAP, LOG_INFO, &raw_packet, ("TX"));
+                LOG_RAW_PACKET(LOG_PCAP, LOG_DEBUG, &raw_packet, ("TX"));
 
                 /* send */
                 netif_frame_send(&netif, &raw_packet);
 
-                //usleep(150);
+                usleep(150);
             }
 
-            /* modify MAC and IP address */
-            header = packet->head;
+            /* send a delayed delay_req */
+            send_delayed_ptp2_delay_req(&netif, slave_mac, slave_ipv4);
 
-            while (header->klass->type != PACKET_TYPE_ETHERNET) {
-                header = header->next;
-            }
-            ether = (ethernet_header_t *) header;
+            /* modify MAC and IPv4 address */
             uint64_t num;
             uint8_to_uint48(&num, ether->src.addr);
             num = num + 1;
             uint48_to_uint8(ether->src.addr, &num);
 
-            while (header->klass->type != PACKET_TYPE_IPV4) {
-                header = header->next;
-            }
-            ipv4 = (ipv4_header_t *) header;
             ipv4->src.addr32 = htonl(ntohl(ipv4->src.addr32) + 1);
+
+            /* try to receive */
+            if (netif_frame_receive(&netif, &raw_packet)) {
+                packet_received = packet_decode(&netif, &raw_packet);
+                if (packet_received->head != NULL) {
+                    LOG_PRINTLN(LOG_PCAP, LOG_INFO, ("Frame received"));
+                } else {
+                    LOG_PRINTLN(LOG_PCAP, LOG_ERROR, ("Frame received but malformed"));
+                }
+                object_release(packet_received);
+            }
         }
 
-        object_release(packet);
+        object_release(packet_sent);
 //        /* print pkt timestamp and pkt len */
 //        printf("%" PRId64 ":%" PRId64 " (%" PRIu32 ")\n", header->ts.tv_sec, header->ts.tv_usec, header->len);
 //

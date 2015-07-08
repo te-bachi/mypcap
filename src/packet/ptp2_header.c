@@ -77,8 +77,11 @@ ptp2_header_encode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, p
     
     /* decide */
     switch (ptp2->msg_type) {
-        case PTP2_MESSAGE_TYPE_SIGNALING:   len = ptp2_signaling_header_encode(netif, packet, raw_packet, offset + PTP2_HEADER_LEN);    break;
+        case PTP2_MESSAGE_TYPE_SYNC:        len = ptp2_sync_header_encode(netif, packet, raw_packet, offset + PTP2_HEADER_LEN);         break;
         case PTP2_MESSAGE_TYPE_ANNOUNCE:    len = ptp2_announce_header_encode(netif, packet, raw_packet, offset + PTP2_HEADER_LEN);     break;
+        case PTP2_MESSAGE_TYPE_DELAY_REQ:   len = ptp2_delay_req_header_encode(netif, packet, raw_packet, offset + PTP2_HEADER_LEN);    break;
+        case PTP2_MESSAGE_TYPE_DELAY_RESP:  len = ptp2_delay_resp_header_encode(netif, packet, raw_packet, offset + PTP2_HEADER_LEN);   break;
+        case PTP2_MESSAGE_TYPE_SIGNALING:   len = ptp2_signaling_header_encode(netif, packet, raw_packet, offset + PTP2_HEADER_LEN);    break;
         default:                                                                                                                        return 0;
     }
     
