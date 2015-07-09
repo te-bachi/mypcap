@@ -43,7 +43,7 @@ delay_req_LDFLAGS           =
 delay_req_SOURCE            = main_delay_req.c
 
 
-### DELAY REQ #################################################################
+### PCAP ######################################################################
 
 pcap_CFLAGS                 = 
 pcap_LDFLAGS                = -lpcap
