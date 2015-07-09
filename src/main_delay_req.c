@@ -77,7 +77,7 @@ send_delayed_ptp2_delay_req(netif_t *netif, mac_address_t *slave_mac, ipv4_addre
     ptp2->src_port_identity.port_number         = 1;
     ptp2->seq_id                                = 1;
     ptp2->control                               = PTP2_CONTROL_DELAY_REQ;
-    ptp2->log_msg_interval                      = 1;
+    ptp2->log_msg_interval                      = 0x7f; /* unicast */
 
     /* PTPv2 delay req */
     ptp2_delay_req->origin_timestamp.seconds        = 123;
@@ -108,11 +108,9 @@ main(int argc, char *argv[])
     int                             res;
     raw_packet_t                    raw_packet;
     packet_t                       *packet_sent;
-    packet_t                       *packet_received;
     header_t                       *header;
     ethernet_header_t              *ether;
     ipv4_header_t                  *ipv4;
-    ptp2_signaling_tlv_header_t    *ptp2_signaling_tlv;
 
     mac_address_t                  *slave_mac;
     ipv4_address_t                 *slave_ipv4;
@@ -171,47 +169,6 @@ main(int argc, char *argv[])
             ipv4 = (ipv4_header_t *) header;
             slave_ipv4 = &(ipv4->src);
 
-            for (int k = 0; k < 3; k++) {
-
-                /* modify messageType */
-                header = packet_sent->head;
-
-                while (header->klass->type != PACKET_TYPE_PTP2_SIGNALING_TLV) {
-                    header = header->next;
-                }
-                ptp2_signaling_tlv = (ptp2_signaling_tlv_header_t *) header;
-
-                ptp2_signaling_tlv->request_unicast.log_period = 0;
-                ptp2_signaling_tlv->request_unicast.duration = 300;
-
-                switch (k) {
-                    case 0:     ptp2_signaling_tlv->request_unicast.msg.type = PTP2_MESSAGE_TYPE_SYNC;
-                                break;
-
-                    case 1:     ptp2_signaling_tlv->request_unicast.msg.type = PTP2_MESSAGE_TYPE_ANNOUNCE;
-                                break;
-
-                    case 2:     ptp2_signaling_tlv->request_unicast.msg.type = PTP2_MESSAGE_TYPE_DELAY_RESP;
-                                break;
-
-                    default:    printf("=== NOOOOO ======================================="); break;
-                }
-
-                /* encode */
-                if (packet_encode(&netif, packet_sent, &raw_packet)) {
-                    LOG_PRINTLN(LOG_PCAP, LOG_INFO, ("Successfully encoded packet"));
-                } else {
-                    LOG_PRINTLN(LOG_PCAP, LOG_ERROR, ("Error encoding packet"));
-                }
-
-                LOG_RAW_PACKET(LOG_PCAP, LOG_DEBUG, &raw_packet, ("TX"));
-
-                /* send */
-                netif_frame_send(&netif, &raw_packet);
-
-                usleep(150);
-            }
-
             /* send a delayed delay_req */
             send_delayed_ptp2_delay_req(&netif, slave_mac, slave_ipv4);
 
@@ -222,32 +179,9 @@ main(int argc, char *argv[])
             uint48_to_uint8(ether->src.addr, &num);
 
             ipv4->src.addr32 = htonl(ntohl(ipv4->src.addr32) + 1);
-
-            /* try to receive */
-            if (netif_frame_receive(&netif, &raw_packet)) {
-                packet_received = packet_decode(&netif, &raw_packet);
-                if (packet_received->head != NULL) {
-                    LOG_PRINTLN(LOG_PCAP, LOG_INFO, ("Frame received"));
-                } else {
-                    LOG_PRINTLN(LOG_PCAP, LOG_ERROR, ("Frame received but malformed"));
-                }
-                object_release(packet_received);
-            }
         }
 
         object_release(packet_sent);
-//        /* print pkt timestamp and pkt len */
-//        printf("%" PRId64 ":%" PRId64 " (%" PRIu32 ")\n", header->ts.tv_sec, header->ts.tv_usec, header->len);
-//
-//        /* Print the packet */
-//        for (i = 1; (i < header->caplen + 1); i++) {
-//            printf("%.2x ", pkt_data[i-1]);
-//            if ((i % LINE_LEN) == 0) {
-//                printf("\n");
-//            }
-//        }
-//
-//        printf("\n\n");
     }
 
 

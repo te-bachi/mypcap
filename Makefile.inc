@@ -23,10 +23,11 @@ endef
 #
 define VARIABLE_template
 
-$(1)_OBJECT = $(addprefix obj/$(1)/,$($(1)_SOURCE:%.c=%.o))
+$(1)_OBJECT = $(addprefix obj/$(1)/,$($(1)_SOURCE:%.c=%.o)) $(addprefix obj/$(1)/,$(GLOBAL_SOURCE:%.c=%.o))
 
 $(call DIRECTORY_template,$(1))
 $(foreach dir, $(addprefix $(1)/,$(sort $(dir $($(1)_SOURCE)))), $(eval $(call DIRECTORY_template,$(dir))))
+$(foreach dir, $(addprefix $(1)/,$(sort $(dir $(GLOBAL_SOURCE)))), $(eval $(call DIRECTORY_template,$(dir))))
 
 endef
 
@@ -43,6 +44,7 @@ endef
 define PROGRAM_template
 
 $(foreach source,$($(1)_SOURCE),$(eval $(call OBJECT_template,$(1),src,source)))
+$(foreach source,$(GLOBAL_SOURCE),$(eval $(call OBJECT_template,$(1),src,source)))
 
 $(1): obj/$(1) $($(1)_OBJECT)
 	@echo "[LD] $$@"
