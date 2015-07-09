@@ -121,7 +121,7 @@ udpv4_header_encode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, 
     /* data = pseudo-ip-header + udp-header + payload
      *  len = pseudo-ip-header + udp-header + payload    */
     udpv4->checksum = raw_packet_calc_checksum((uint16_t *) &(raw_packet->data[offset - pseudo_offset]), len + pseudo_offset);
-    LOG_PRINTLN(LOG_HEADER_UDPV4, LOG_DEBUG, ("encode UDP packet: checksum = 0x%04x, offset = %u, pseudo_offset = %u, size = %u", ntohs(udpv4->checksum), offset, pseudo_offset, len));
+    LOG_PRINTLN(LOG_HEADER_UDPV4, LOG_VERBOSE, ("encode UDP packet: checksum = 0x%04x, offset = %u, pseudo_offset = %u, size = %u", ntohs(udpv4->checksum), offset, pseudo_offset, len));
     
     /* set pseudo-ip-header to zero */
     memset(&(raw_packet->data[offset - pseudo_offset]), 0, pseudo_offset);

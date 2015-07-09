@@ -1,10 +1,10 @@
 
-PROGRAMS                    = signaling delay_req
+PROGRAMS                    = signaling delay_req pcap
 
 CC                          = gcc
 #GLOBAL_CFLAGS               = -O3 -flto -pthread -pipe -Wall -ggdb -std=gnu99 -fms-extensions -Iinclude -Wmissing-prototypes -Wno-uninitialized -Wstrict-prototypes
 GLOBAL_CFLAGS               = -O0 -pthread -pipe -Wall -ggdb -std=gnu99 -fms-extensions -Iinclude -Wmissing-prototypes -Wno-uninitialized -Wstrict-prototypes
-GLOBAL_LDFLAGS              = -lpcap -lm
+GLOBAL_LDFLAGS              = -lm
 GLOBAL_SOURCE               = object.c \
                               log.c \
                               log_network.c \
@@ -41,6 +41,13 @@ signaling_SOURCE            = main_signaling.c
 delay_req_CFLAGS            = 
 delay_req_LDFLAGS           = 
 delay_req_SOURCE            = main_delay_req.c
+
+
+### DELAY REQ #################################################################
+
+pcap_CFLAGS                 = 
+pcap_LDFLAGS                = -lpcap
+pcap_SOURCE                 = main_pcap.c
 
 include Makefile.inc
 
