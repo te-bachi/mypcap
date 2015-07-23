@@ -36,8 +36,8 @@ create_ptp2_signaling_req(mac_address_t *slave_mac, ipv4_address_t *slave_ipv4)
     ptp2_signaling_header_t        *ptp2_signaling          = ptp2_signaling_header_new();
     ptp2_signaling_tlv_header_t    *ptp2_signaling_tlv      = ptp2_signaling_tlv_header_new();
 
-    mac_address_t                   master_mac              = { .addr = { 0x00, 0x01, 0x20, 0x03, 0x00, 0x06 } };
-    ipv4_address_t                  master_ipv4             = { .addr = {   11,   14,  122,    1 } };
+    mac_address_t                   master_mac              = { .addr = { 0x00, 0x01, 0x20, 0x02, 0x00, 0x06 } };
+    ipv4_address_t                  master_ipv4             = { .addr = {   10,   16,  4,    5 } };
 
     packet->head                                            = (header_t *) ether;
     ether->header.next                                      = (header_t *) ipv4;
@@ -112,7 +112,7 @@ main(int argc, char *argv[])
     uint64_t                        mac48;
 
     mac_address_t                   slave_mac   = { .addr = { 0x00, 0x80, 0xea, 0x39, 0x00, 0x1 } };
-    ipv4_address_t                  slave_ipv4  = { .addr = {   11,   14,  122,    2 } };
+    ipv4_address_t                  slave_ipv4  = { .addr = {   10, 16, 4, 10} };
 
     if (argc != 2) {
         printf("usage: %s ifname\n", argv[0]);
@@ -148,7 +148,7 @@ main(int argc, char *argv[])
     }
     ptp2_signaling_tlv = (ptp2_signaling_tlv_header_t *) header;
 
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 90; i++) {
         bzero(&raw_packet, sizeof(raw_packet));
 
         for (int k = 0; k < 3; k++) {
@@ -178,7 +178,7 @@ main(int argc, char *argv[])
             /* send */
             netif_frame_send(&netif, &raw_packet);
 
-            usleep(150);
+            //usleep(150);
         }
 
         /* modify MAC address */

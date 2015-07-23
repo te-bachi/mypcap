@@ -31,6 +31,10 @@ typedef struct _ethernet_header_t       ethernet_header_t;
 #define ETHERTYPE_IPV6                  0x86DD
 #endif
 
+#ifndef ETHERTYPE_PTP2
+#define ETHERTYPE_PTP2                  0x88F7
+#endif
+
 typedef struct _vlan_header_t {
     union {
         uint16_t        tci;            /* Tag Control Information */

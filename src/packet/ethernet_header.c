@@ -85,6 +85,7 @@ ethernet_header_encode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packe
     
     /* decide */
     switch(ethertype) {
+        case ETHERTYPE_PTP2:    len = ptp2_header_encode(netif, packet, raw_packet, offset + ethernet_len);         break;
         case ETHERTYPE_IPV4:    len = ipv4_header_encode(netif, packet, raw_packet, offset + ethernet_len);         break;
         default:                                                                                                    return 0;
     }
@@ -155,6 +156,7 @@ ethernet_header_decode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packe
     
     /* decide */
     switch(ethertype) {
+        case ETHERTYPE_PTP2:    ether->header.next = ptp2_header_decode(netif, packet, raw_packet, offset + ethernet_len);  break;
         case ETHERTYPE_IPV4:    ether->header.next = ipv4_header_decode(netif, packet, raw_packet, offset + ethernet_len);  break;
         default:                                                                                                    ETHERNET_FAILURE_EXIT;
     }
