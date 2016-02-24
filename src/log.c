@@ -10,7 +10,9 @@ bool log_enabled = true;
 
 log_level_t LOG_CATEGORY_LEVEL[] = {
     [LOG_OBJECT]                        = LOG_INFO,
+    [LOG_SIM]                           = LOG_INFO,
     [LOG_PCAP]                          = LOG_ERROR,
+    [LOG_CONFIG_FILE]                   = LOG_INFO,
     [LOG_NETWORK_INTERFACE]             = LOG_INFO,
     [LOG_SOCKET_BPF]                    = LOG_INFO,
     [LOG_HEADER_STORAGE]                = LOG_INFO,
@@ -31,7 +33,9 @@ log_level_t LOG_CATEGORY_LEVEL[] = {
 
 const char *LOG_CATEGORY_STRING[] = {
     [LOG_OBJECT]                        = "[OBJECT                    ]",
+    [LOG_SIM]                           = "[SIM                       ]",
     [LOG_PCAP]                          = "[PCAP                      ]",
+    [LOG_CONFIG_FILE]                   = "[CONFIG FILE               ]",
     [LOG_NETWORK_INTERFACE]             = "[NETWORK INTERFACE         ]",
     [LOG_SOCKET_BPF]                    = "[SOCKET BPF                ]",
     [LOG_HEADER_STORAGE]                = "[HEADER STORAGE            ]",

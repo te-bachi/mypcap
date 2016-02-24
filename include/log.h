@@ -75,7 +75,9 @@
 
 typedef enum {
     LOG_OBJECT,
+    LOG_SIM,
     LOG_PCAP,
+    LOG_CONFIG_FILE,
     LOG_NETWORK_INTERFACE,
     LOG_SOCKET_BPF,
     LOG_HEADER_STORAGE,

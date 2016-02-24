@@ -5,8 +5,6 @@
 #include <stddef.h>
 #include <inttypes.h>
 
-static void num2hexstr(uint32_t num, uint8_t *chr, size_t len);
-
 /*** PACKETS + HEADERS  ******************************************************/
 
 void
@@ -314,28 +312,6 @@ log_ipv6(const ipv6_address_t *ipv6, uint8_t *str)
         str[len++] = ':';
     }
     str[--len] = '\0';
-}
-
-/**
- * Converts a 32-bit number (unsigned integer) to an ASCII character-arry
- * WITHOUT the NUL terminator
- *
- * @param num           32-bit number to be converted
- * @param chr           an already allocated reference to a fixed length character-array
- * @param len           length of the character-array
- */
-static void
-num2hexstr(uint32_t num, uint8_t *chr, size_t len)
-{
-    const static uint8_t HEXADECIMAL_LOWER[] = "0123456789abcdef";
-    
-    uint8_t    *reverse = &(chr[len]);
-    
-    while (len) {
-        *--reverse = HEXADECIMAL_LOWER[num & 0x0f];
-        num >>= 4;
-        len--;
-    }
 }
 
 const char *

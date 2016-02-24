@@ -5,17 +5,21 @@
 #include <stdbool.h>
 #include <arpa/inet.h>
 
-#define MAC_ADDRESS(x)          ((mac_address_t  *) x)
-#define IPV4_ADDRESS(x)         ((ipv4_address_t *) x)
-#define IPV6_ADDRESS(x)         ((ipv6_address_t *) x)
+#define MAC_ADDRESS(x)              ((mac_address_t  *) x)
+#define IPV4_ADDRESS(x)             ((ipv4_address_t *) x)
+#define IPV6_ADDRESS(x)             ((ipv6_address_t *) x)
 
-#define MAC_ADDRESS_LEN         6
-#define MAC_ADDRESS_WW_LEN      2
-#define IPV4_ADDRESS_LEN        4
-#define IPV6_ADDRESS_LEN        16
-#define IPV6_ADDRESS_HW_LEN     8
-#define IPV6_ADDRESS_WW_LEN     4
-#define IPV6_ADDRESS_DW_LEN     2
+#define STR_MAC_ADDRESS_MAX_LEN     17 + 1      /* MAC-address  string length, with NUL-character */
+#define STR_IPV4_ADDRESS_MAX_LEN    15 + 1      /* IPv4-address string length, with NUL-character */
+#define STR_IPV6_ADDRESS_MAX_LEN    41 + 1      /* IPv4-address string length, with NUL-character */
+
+#define MAC_ADDRESS_LEN             6
+#define MAC_ADDRESS_WW_LEN          2
+#define IPV4_ADDRESS_LEN            4
+#define IPV6_ADDRESS_LEN            16
+#define IPV6_ADDRESS_HW_LEN         8
+#define IPV6_ADDRESS_WW_LEN         4
+#define IPV6_ADDRESS_DW_LEN         2
 
 /* see ETH_FRAME_LEN in '/usr/include/linux/if_ether.h' */
 #define ETH_MAX_FRAME_SIZE      4096                    /**< Max. bytes in frame without preamble, SFD but with FCS (=CRC) */
@@ -24,6 +28,7 @@
 typedef struct _mac_address_t {
     uint8_t     addr[MAC_ADDRESS_LEN];                  /**< byte-wise 48-bit MAC address */
 } mac_address_t;
+/* example: 00:0d:b9:3f:9d:bc */
 
 /**
  * IPv4 address structure
@@ -43,6 +48,7 @@ typedef struct _ipv4_address_t {
         uint32_t        addr32;                         /**< 32-bit (word) IPv4 address, caution with byte-order! */
     };
 } ipv4_address_t;
+/* example: 192.168.1.1 */
 
 /** IPv6 address structure */
 typedef struct _ipv6_address_t {
@@ -53,11 +59,23 @@ typedef struct _ipv6_address_t {
         uint64_t        addr64[IPV6_ADDRESS_DW_LEN];    /**< 64-bit-wise (double-word) IPv6 address, caution with byte-order! */
     };
 } ipv6_address_t;
+/* example: fe80::20d:b9ff:fe3f:9dbc */
 
 extern const mac_address_t      MAC_ADDRESS_NULL;
 extern const mac_address_t      MAC_ADDRESS_BROADCAST;
 extern const ipv4_address_t     IPV4_ADDRESS_NULL;
 extern const ipv6_address_t     IPV6_ADDRESS_NULL;
+
+void num2hexstr(uint32_t num, uint8_t *chr, size_t len);
+void hexstr2num(void *num, const uint8_t *chr, size_t maxlen);
+//void hexstr2u32(uint32_t *num, const uint8_t *chr, size_t maxlen);
+//void hexstr2u8(uint8_t *num, const uint8_t *chr, size_t maxlen);
+
+bool mac_address_convert_from_string(mac_address_t *mac, const uint8_t *str);
+bool mac_address_convert_to_string(const mac_address_t *mac, uint8_t *str);
+
+bool ipv4_address_convert_from_string(ipv4_address_t *ipv4, const uint8_t *str);
+bool ipv4_address_convert_to_string(const ipv4_address_t *ipv4, uint8_t *str);
 
 /**
  * Check equality of two MAC addresses
