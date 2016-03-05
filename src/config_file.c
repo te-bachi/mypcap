@@ -15,7 +15,7 @@ bool                    config_file_parse_vlan          (FILE *file, config_line
 bool                    config_file_parse_gateway       (FILE *file, config_line_t *line, config_gateway_t *gateway);
 bool                    config_file_parse_ptp           (FILE *file, config_line_t *line, config_ptp_t *ptp);
 bool                    config_file_parse_ntp           (FILE *file, config_line_t *line, config_ntp_t *ntp);
-bool                    config_file_parse_ntp_client    (FILE *file, config_line_t *line, config_ntp_client_t *client);
+bool                    config_file_parse_ntp_peer      (FILE *file, config_line_t *line, config_ntp_peer_t *peer, const char  *peername);
 config_line_result_t    config_file_next_token          (config_line_t *line, char *token, const char *match);
 void                    config_file_get_line_length     (config_line_t *line);
 static bool             config_file_convert_to_integer  (config_line_t *line, const char *token, uint32_t *result);
@@ -490,6 +490,7 @@ config_file_parse_ntp(FILE *file, config_line_t *line, config_ntp_t *ntp)
     char                    token[CONFIG_FILE_LINE_SIZE];
     config_line_result_t    result;
     uint32_t                client_idx = 0;
+    bool                    server_configured = false;
 
     ntp->adva_tlv = false;
 
@@ -517,15 +518,27 @@ config_file_parse_ntp(FILE *file, config_line_t *line, config_ntp_t *ntp)
              /* leave subnet body */
              return true;
 
-         /* ntp-server (ipv4) */
+         /* server */
          } else if (strcmp(token, "server") == 0) {
-             result = config_file_next_token(line, token, NULL);
-             if (result == CONFIG_LINE_EOL)   goto ntp_body_error;
-             if (result == CONFIG_LINE_ERROR) return false;
-
-             if (!config_file_convert_to_ipv4(line, token, &(ntp->server))) {
+             /* server already configured */
+             if (server_configured) {
+                 LOG_PRINTLN(LOG_CONFIG_FILE, LOG_ERROR, ("parse config-file: multiple 'server' statements in 'ntp' block at line %d:%d.", line->number, line->saved_position));
                  return false;
              }
+
+            /* parse second token: '{' */
+            result = config_file_next_token(line, token, "{");
+            if (result == CONFIG_LINE_EOL)   goto ntp_server_line_error;
+            if (result == CONFIG_LINE_ERROR) return false;
+
+            /* are there still other tokens left? */
+            result = config_file_next_token(line, token, NULL);
+            if (result != CONFIG_LINE_EOL)   goto ntp_client_line_error;
+
+            if (!config_file_parse_ntp_peer(file, line, &(ntp->server), "server")) {
+                return false;
+            }
+            server_configured = true;
 
          /* adva-tlv (boolean) */
          } else if (strcmp(token, "adva-tlv") == 0) {
@@ -555,7 +568,7 @@ config_file_parse_ntp(FILE *file, config_line_t *line, config_ntp_t *ntp)
              result = config_file_next_token(line, token, NULL);
              if (result != CONFIG_LINE_EOL)   goto ntp_client_line_error;
 
-             if (!config_file_parse_ntp_client(file, line, &(ntp->client[client_idx]))) {
+             if (!config_file_parse_ntp_peer(file, line, &(ntp->client[client_idx]), "client")) {
                  return false;
              }
              client_idx++;
@@ -577,13 +590,18 @@ ntp_body_error:
      LOG_PRINTLN(LOG_CONFIG_FILE, LOG_ERROR, ("parse config-file: unfinished statement in 'ntp' block at line %d:%d", line->number, line->saved_position));
      return false;
 
+ntp_server_line_error:
+    LOG_PRINTLN(LOG_CONFIG_FILE, LOG_ERROR, ("parse config-file: unfinished 'server' statement in 'ntp' block at line %d:%d", line->number, line->saved_position));
+    return false;
+
+
 ntp_client_line_error:
     LOG_PRINTLN(LOG_CONFIG_FILE, LOG_ERROR, ("parse config-file: unfinished 'client' statement in 'ntp' block at line %d:%d", line->number, line->saved_position));
     return false;
 }
 
 bool
-config_file_parse_ntp_client(FILE *file, config_line_t *line, config_ntp_client_t *client)
+config_file_parse_ntp_peer(FILE *file, config_line_t *line, config_ntp_peer_t *peer, const char  *peername)
 {
     char                    token[CONFIG_FILE_LINE_SIZE];
     config_line_result_t    result;
@@ -603,29 +621,29 @@ config_file_parse_ntp_client(FILE *file, config_line_t *line, config_ntp_client_
 
         /* evaluate token */
 
-         /* end of ntp client block */
+         /* end of ntp peer block */
          if (strcmp(token, "}") == 0) {
              /* are there still other tokens left? */
              result = config_file_next_token(line, token, NULL);
-             if (result != CONFIG_LINE_EOL)   goto gateway_body_error;
+             if (result != CONFIG_LINE_EOL)   goto ntp_peer_body_error;
 
-             /* leave ntp client body */
+             /* leave ntp peer body */
              return true;
 
          /* mac */
          } else if (strcmp(token, "mac") == 0) {
              /* mac already configured? */
              if (mac_configured) {
-                 LOG_PRINTLN(LOG_CONFIG_FILE, LOG_ERROR, ("parse config-file: multiple 'mac' statements in 'client' block at line %d:%d.", line->number, line->saved_position));
+                 LOG_PRINTLN(LOG_CONFIG_FILE, LOG_ERROR, ("parse config-file: multiple 'mac' statements in '%s' block at line %d:%d.", peername, line->number, line->saved_position));
                  return false;
              }
              mac_configured = true;
 
              result = config_file_next_token(line, token, NULL);
-             if (result == CONFIG_LINE_EOL)   goto gateway_body_error;
+             if (result == CONFIG_LINE_EOL)   goto ntp_peer_body_error;
              if (result == CONFIG_LINE_ERROR) return false;
 
-             if (!config_file_convert_to_mac(line, token, &(client->mac_address))) {
+             if (!config_file_convert_to_mac(line, token, &(peer->mac_address))) {
                  return false;
              }
 
@@ -633,33 +651,33 @@ config_file_parse_ntp_client(FILE *file, config_line_t *line, config_ntp_client_
          } else if (strcmp(token, "ipv4") == 0) {
              /* ipv4 already configured? */
              if (ipv4_configured) {
-                 LOG_PRINTLN(LOG_CONFIG_FILE, LOG_ERROR, ("parse config-file: multiple 'ipv4' statements in 'client' block at line %d:%d.", line->number, line->saved_position));
+                 LOG_PRINTLN(LOG_CONFIG_FILE, LOG_ERROR, ("parse config-file: multiple 'ipv4' statements in '%s' block at line %d:%d.", peername, line->number, line->saved_position));
                  return false;
              }
              ipv4_configured = true;
 
              result = config_file_next_token(line, token, NULL);
-             if (result == CONFIG_LINE_EOL)   goto gateway_body_error;
+             if (result == CONFIG_LINE_EOL)   goto ntp_peer_body_error;
              if (result == CONFIG_LINE_ERROR) return false;
 
-             if (!config_file_convert_to_ipv4(line, token, &(client->ipv4_address))) {
+             if (!config_file_convert_to_ipv4(line, token, &(peer->ipv4_address))) {
                  return false;
              }
          } else {
-             LOG_PRINTLN(LOG_CONFIG_FILE, LOG_ERROR, ("parse config-file: unknow token '%s' in 'client' block at line %d:%d.", token, line->number, line->saved_position));
+             LOG_PRINTLN(LOG_CONFIG_FILE, LOG_ERROR, ("parse config-file: unknow token '%s' in '%s' block at line %d:%d.", token, peername, line->number, line->saved_position));
              return false;
          }
 
          /* are there still other tokens left? */
          result = config_file_next_token(line, token, NULL);
-         if (result != CONFIG_LINE_EOL)   goto gateway_body_error;
+         if (result != CONFIG_LINE_EOL)   goto ntp_peer_body_error;
     }
 
-    LOG_PRINTLN(LOG_CONFIG_FILE, LOG_ERROR, ("parse config-file: unfinished 'client' block at line %d:%d. No closing bracket!", line->number, line->saved_position));
+    LOG_PRINTLN(LOG_CONFIG_FILE, LOG_ERROR, ("parse config-file: unfinished '%s' block at line %d:%d. No closing bracket!", peername, line->number, line->saved_position));
     return false;
 
-gateway_body_error:
-     LOG_PRINTLN(LOG_CONFIG_FILE, LOG_ERROR, ("parse config-file: unfinished statement in 'client' block at line %d:%d", line->number, line->saved_position));
+    ntp_peer_body_error:
+     LOG_PRINTLN(LOG_CONFIG_FILE, LOG_ERROR, ("parse config-file: unfinished statement in '%s' block at line %d:%d", peername, line->number, line->saved_position));
      return false;
 
 }

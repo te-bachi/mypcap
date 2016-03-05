@@ -58,7 +58,7 @@ main(int argc, char *argv[])
 
         header = packet->head;
 
-        while (header->klass->type != PACKET_TYPE_ETHERNET) {
+        while (header->klass->type != HEADER_TYPE_ETHERNET) {
             header = header->next;
         }
         ether = (ethernet_header_t *) header;
@@ -72,7 +72,7 @@ main(int argc, char *argv[])
                 /* modify messageType */
                 header = packet->head;
 
-                while (header->klass->type != PACKET_TYPE_PTP2_SIGNALING_TLV) {
+                while (header->klass->type != HEADER_TYPE_PTP2_SIGNALING_TLV) {
                     header = header->next;
                 }
                 ptp2_signaling_tlv = (ptp2_signaling_tlv_header_t *) header;
@@ -111,7 +111,7 @@ main(int argc, char *argv[])
             /* modify MAC and IP address */
             header = packet->head;
 
-            while (header->klass->type != PACKET_TYPE_ETHERNET) {
+            while (header->klass->type != HEADER_TYPE_ETHERNET) {
                 header = header->next;
             }
             ether = (ethernet_header_t *) header;
@@ -120,7 +120,7 @@ main(int argc, char *argv[])
             num = num + 1;
             uint48_to_uint8(ether->src.addr, &num);
 
-            while (header->klass->type != PACKET_TYPE_IPV4) {
+            while (header->klass->type != HEADER_TYPE_IPV4) {
                 header = header->next;
             }
             ipv4 = (ipv4_header_t *) header;

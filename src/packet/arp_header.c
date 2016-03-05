@@ -1,5 +1,7 @@
+
 #include "packet/packet.h"
 #include "log.h"
+#include "log_network.h"
 
 #include <string.h>
 #include <inttypes.h>
@@ -13,7 +15,7 @@ static arp_header_t             arp[ARP_STORAGE_INIT_SIZE];
 static uint32_t                 idx[ARP_STORAGE_INIT_SIZE];
 
 static header_class_t           klass = {
-    .type               = PACKET_TYPE_ARP,
+    .type               = HEADER_TYPE_ARP,
     .size               = sizeof(arp_header_t),
     .free               = arp_header_free
 };
@@ -64,7 +66,11 @@ arp_header_encode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, pa
 {
     arp_header_t       *arp;
 
-    if (packet->tail->klass->type != PACKET_TYPE_ARP) {
+    if (packet->tail->klass->type != HEADER_TYPE_ARP) {
+        LOG_PRINTLN(LOG_HEADER_ARP, LOG_ERROR, ("%s header encode: next header is not a %s header but a %s header!",
+                log_header_type(HEADER_TYPE_ARP),
+                log_header_type(HEADER_TYPE_ARP),
+                log_header_type(packet->tail->klass->type)));
         return 0;
     }
     arp             = (arp_header_t *) packet->tail;

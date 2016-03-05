@@ -1,5 +1,7 @@
+
 #include "packet/packet.h"
 #include "log.h"
+#include "log_network.h"
 
 #include <string.h>
 #include <inttypes.h>
@@ -13,7 +15,7 @@ static ptp2_delay_req_header_t              ptp2_delay_req[PTP2_DELAY_REQ_STORAG
 static uint32_t                             idx[PTP2_DELAY_REQ_STORAGE_INIT_SIZE];
 
 static header_class_t           klass = {
-    .type               = PACKET_TYPE_PTP2_DELAY_REQ,
+    .type               = HEADER_TYPE_PTP2_DELAY_REQ,
     .size               = sizeof(ptp2_delay_req_header_t),
     .free               = ptp2_delay_req_header_free
 };
@@ -66,7 +68,11 @@ ptp2_delay_req_header_encode(netif_t *netif, packet_t *packet, raw_packet_t *raw
     ptp2_delay_req_header_t    *ptp2_delay_req;
     packet_len_t                len;
 
-    if (packet->tail->klass->type != PACKET_TYPE_PTP2_DELAY_REQ) {
+    if (packet->tail->klass->type != HEADER_TYPE_PTP2_DELAY_REQ) {
+        LOG_PRINTLN(LOG_HEADER_PTP2_DELAY_REQ, LOG_ERROR, ("%s header encode: next header is not a %s header but a %s header!",
+                log_header_type(HEADER_TYPE_PTP2_DELAY_REQ),
+                log_header_type(HEADER_TYPE_PTP2_DELAY_REQ),
+                log_header_type(packet->tail->klass->type)));
         return 0;
     }
 

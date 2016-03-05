@@ -20,15 +20,15 @@ typedef struct _config_vlan_t       config_vlan_t;
 typedef struct _config_ptp_t        config_ptp_t;
 typedef struct _config_ntp_t        config_ntp_t;
 typedef struct _config_gateway_t    config_gateway_t;
-typedef struct _config_ptp_slave_t  config_ptp_slave_t;
-typedef struct _config_ntp_client_t config_ntp_client_t;
+typedef struct _config_ptp_node_t   config_ptp_node_t;
+typedef struct _config_ntp_peer_t   config_ntp_peer_t;
 
-struct _config_ntp_client_t {
+struct _config_ntp_peer_t {
     mac_address_t                   mac_address;
     ipv4_address_t                  ipv4_address;
 };
 
-struct _config_ptp_slave_t {
+struct _config_ptp_node_t {
     mac_address_t                   mac_address;
     ipv4_address_t                  ipv4_address;
 };
@@ -41,15 +41,15 @@ struct _config_gateway_t {
 
 struct _config_ptp_t {
     uint16_t                        domain;
-    ipv4_address_t                  server;
-    config_ptp_slave_t              slave[CONFIG_PTP_SLAVE_MAX_SIZE];
+    config_ptp_node_t               server;
+    config_ptp_node_t               slave[CONFIG_PTP_SLAVE_MAX_SIZE];
     uint32_t                        slave_size;
 };
 
 struct _config_ntp_t {
-    ipv4_address_t                  server;
     bool                            adva_tlv;
-    config_ntp_client_t             client[CONFIG_NTP_CLIENT_MAX_SIZE];
+    config_ntp_peer_t               server;
+    config_ntp_peer_t               client[CONFIG_NTP_CLIENT_MAX_SIZE];
     uint32_t                        client_size;
 };
 

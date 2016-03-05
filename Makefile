@@ -18,6 +18,7 @@ libmypcap.a_SOURCE          = object.c \
                               ptp2_types.c \
                               network_interface.c \
                               bpf.c \
+                              arp_table.c \
                               config_file.c \
                               packet/net_address.c \
                               packet/raw_packet.c \
@@ -34,7 +35,9 @@ libmypcap.a_SOURCE          = object.c \
                               packet/ptp2_delay_req_header.c \
                               packet/ptp2_delay_resp_header.c \
                               packet/ptp2_signaling_header.c \
-                              packet/ptp2_signaling_tlv_header.c
+                              packet/ptp2_signaling_tlv_header.c \
+                              packet/ntp_header.c \
+                              packet/adva_tlv_header.c
 
                               
 ### SIGNALING #################################################################

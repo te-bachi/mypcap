@@ -13,27 +13,29 @@ typedef struct _header_class_t          header_class_t;
 #include "packet/header_storage.h"
 
 enum _header_type_t {
-    PACKET_TYPE_ETHERNET,
-    PACKET_TYPE_VLAN,
-    PACKET_TYPE_ARP,
-    PACKET_TYPE_IPV4,
-    PACKET_TYPE_IPV6,
-    PACKET_TYPE_ICMPV4,
-    PACKET_TYPE_UDPV4,
-    PACKET_TYPE_TCPV4,
-    PACKET_TYPE_ICMPV6,
-    PACKET_TYPE_UDPV6,
-    PACKET_TYPE_TCPV6,
-    PACKET_TYPE_DNS,
-    PACKET_TYPE_PTP2,
-    PACKET_TYPE_PTP2_SYNC,
-    PACKET_TYPE_PTP2_ANNOUNCE,
-    PACKET_TYPE_PTP2_DELAY_REQ,
-    PACKET_TYPE_PTP2_DELAY_RESP,
-    PACKET_TYPE_PTP2_SIGNALING,
-    PACKET_TYPE_PTP2_SIGNALING_TLV,
-    PACKET_TYPE_IGNORE,
-    PACKET_TYPE_ALL
+    HEADER_TYPE_ETHERNET,
+    HEADER_TYPE_VLAN,
+    HEADER_TYPE_ARP,
+    HEADER_TYPE_IPV4,
+    HEADER_TYPE_IPV6,
+    HEADER_TYPE_ICMPV4,
+    HEADER_TYPE_UDPV4,
+    HEADER_TYPE_TCPV4,
+    HEADER_TYPE_ICMPV6,
+    HEADER_TYPE_UDPV6,
+    HEADER_TYPE_TCPV6,
+    HEADER_TYPE_DNS,
+    HEADER_TYPE_PTP2,
+    HEADER_TYPE_PTP2_SYNC,
+    HEADER_TYPE_PTP2_ANNOUNCE,
+    HEADER_TYPE_PTP2_DELAY_REQ,
+    HEADER_TYPE_PTP2_DELAY_RESP,
+    HEADER_TYPE_PTP2_SIGNALING,
+    HEADER_TYPE_PTP2_SIGNALING_TLV,
+    HEADER_TYPE_NTP,
+    HEADER_TYPE_ADVA_TLV,
+    HEADER_TYPE_IGNORE,
+    HEADER_TYPE_ALL
 };
 
 typedef header_t     *(*header_new_fn)(void);
@@ -85,6 +87,8 @@ struct _header_t {
 #include "packet/ptp2_delay_resp_header.h"
 #include "packet/ptp2_signaling_header.h"
 #include "packet/ptp2_signaling_tlv_header.h"
+#include "packet/ntp_header.h"
+#include "packet/adva_tlv_header.h"
 
 #endif
 

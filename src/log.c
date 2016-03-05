@@ -15,6 +15,7 @@ log_level_t LOG_CATEGORY_LEVEL[] = {
     [LOG_CONFIG_FILE]                   = LOG_INFO,
     [LOG_NETWORK_INTERFACE]             = LOG_INFO,
     [LOG_SOCKET_BPF]                    = LOG_INFO,
+    [LOG_ARP_TABLE]                     = LOG_INFO,
     [LOG_HEADER_STORAGE]                = LOG_INFO,
     [LOG_HEADER_ETHERNET]               = LOG_DEBUG,
     [LOG_HEADER_ARP]                    = LOG_DEBUG,
@@ -29,6 +30,8 @@ log_level_t LOG_CATEGORY_LEVEL[] = {
     [LOG_HEADER_PTP2_DELAY_RESP]        = LOG_DEBUG,
     [LOG_HEADER_PTP2_SIGNALING]         = LOG_DEBUG,
     [LOG_HEADER_PTP2_SIGNALING_TLV]     = LOG_DEBUG,
+    [LOG_HEADER_NTP]                    = LOG_DEBUG,
+    [LOG_HEADER_ADVA_TLV]               = LOG_DEBUG,
 };
 
 const char *LOG_CATEGORY_STRING[] = {
@@ -38,6 +41,7 @@ const char *LOG_CATEGORY_STRING[] = {
     [LOG_CONFIG_FILE]                   = "[CONFIG FILE               ]",
     [LOG_NETWORK_INTERFACE]             = "[NETWORK INTERFACE         ]",
     [LOG_SOCKET_BPF]                    = "[SOCKET BPF                ]",
+    [LOG_ARP_TABLE]                     = "[ARP TABLE                 ]",
     [LOG_HEADER_STORAGE]                = "[HEADER STORAGE            ]",
     [LOG_HEADER_ETHERNET]               = "[HEADER ETHERNET           ]",
     [LOG_HEADER_ARP]                    = "[HEADER ARP                ]",
@@ -52,6 +56,8 @@ const char *LOG_CATEGORY_STRING[] = {
     [LOG_HEADER_PTP2_DELAY_RESP]        = "[HEADER PTPv2 DELAY RESP   ]",
     [LOG_HEADER_PTP2_SIGNALING]         = "[HEADER PTPv2 SIGNALING    ]",
     [LOG_HEADER_PTP2_SIGNALING_TLV]     = "[HEADER PTPv2 SIGNALING TLV]",
+    [LOG_HEADER_NTP]                    = "[HEADER NTP                ]",
+    [LOG_HEADER_ADVA_TLV]               = "[HEADER ADVA TLV           ]",
 };
 
 const char *LOG_LEVEL_STRING[] = {

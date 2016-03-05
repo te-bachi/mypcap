@@ -1,7 +1,7 @@
+
 #include "packet/packet.h"
 #include "log.h"
-
-#include <string.h>
+#include "log_network.h"
 
 #include <string.h>
 #include <inttypes.h>
@@ -15,7 +15,7 @@ static ptp2_announce_header_t               ptp2_announce[PTP2_ANNOUNCE_STORAGE_
 static uint32_t                             idx[PTP2_ANNOUNCE_STORAGE_INIT_SIZE];
 
 static header_class_t           klass = {
-    .type               = PACKET_TYPE_PTP2_ANNOUNCE,
+    .type               = HEADER_TYPE_PTP2_ANNOUNCE,
     .size               = sizeof(ptp2_announce_header_t),
     .free               = ptp2_announce_header_free
 };

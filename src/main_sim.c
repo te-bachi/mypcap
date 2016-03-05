@@ -3,6 +3,10 @@
 #include "log.h"
 #include "log_network.h"
 
+#include "packet/raw_packet.h"
+#include "packet/packet.h"
+#include "packet/port.h"
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -18,6 +22,81 @@
 #define OPT_UNRECOGNISED (void *) 2
 
 void usage(int argc, char *argv[], const char *msg);
+
+
+packet_t *create_ntp_req(config_ntp_peer_t *server, config_ntp_peer_t *client);
+
+packet_t *
+create_ntp_req(config_ntp_peer_t *server, config_ntp_peer_t *client)
+{
+    packet_t                       *packet                  = packet_new();
+    ethernet_header_t              *ether                   = ethernet_header_new();
+    ipv4_header_t                  *ipv4                    = ipv4_header_new();
+    udpv4_header_t                 *udpv4                   = udpv4_header_new();
+    ntp_header_t                   *ntp                     = ntp_header_new();
+    adva_tlv_header_t              *adva_tlv                = adva_tlv_header_new();
+
+    packet->head                                            = (header_t *) ether;
+    ether->header.next                                      = (header_t *) ipv4;
+    ipv4->header.next                                       = (header_t *) udpv4;
+    udpv4->header.next                                      = (header_t *) ntp;
+    ntp->header.next                                        = (header_t *) adva_tlv;
+
+    /* Ethernet */
+    ether->dest                                             = server->mac_address;
+    ether->src                                              = client->mac_address;
+    ether->type                                             = ETHERTYPE_IPV4;
+
+    /* IPv4 */
+    ipv4->version                                           = IPV4_HEADER_VERSION;
+    ipv4->ihl                                               = IPV4_HEADER_IHL;
+    ipv4->ecn                                               = 0;
+    ipv4->dscp                                              = 0;
+    ipv4->fragment_offset                                   = 0;
+    ipv4->more_fragments                                    = 0;
+    ipv4->dont_fragment                                     = 0;
+    ipv4->reserved                                          = 0;
+    ipv4->ttl                                               = 128;
+    ipv4->protocol                                          = IPV4_PROTOCOL_UDP;
+    ipv4->src                                               = client->ipv4_address;
+    ipv4->dest                                              = server->ipv4_address;
+
+    /* UDPv4 */
+    udpv4->src_port                                         = PORT_NTP;
+    udpv4->dest_port                                        = PORT_NTP;
+
+    /* NTP */
+    ntp->leap_indicator                                     = NTP_LEAP_INDICATOR_NO_WARNING;
+    ntp->version                                            = NTP_VERSION_4;
+    ntp->mode                                               = NTP_MODE_CLIENT;
+    ntp->stratum                                            = 2;
+    ntp->polling_interval                                   = 6;
+    ntp->clock_precision                                    = -22;
+    ntp->root_delay                                         = 0;
+    ntp->root_dispersion                                    = 0;
+    ntp->reference_id[0]                                    = 'G';
+    ntp->reference_id[1]                                    = 'P';
+    ntp->reference_id[2]                                    = 'S';
+    ntp->reference_id[3]                                    = '\0';
+    ntp->reference_timestamp.seconds                        = 123;
+    ntp->reference_timestamp.nanoseconds                    = 456;
+    ntp->origin_timestamp.seconds                           = 123;
+    ntp->origin_timestamp.nanoseconds                       = 456;
+    ntp->receive_timestamp.seconds                          = 123;
+    ntp->receive_timestamp.nanoseconds                      = 456;
+    ntp->transmit_timestamp.seconds                         = 123;
+    ntp->transmit_timestamp.nanoseconds                     = 456;
+
+    adva_tlv->type                                          = ADVA_TLV_TYPE_NTP;
+    adva_tlv->len                                           = ADVA_TLV_HEADER_LEN;
+    adva_tlv->opcode                                        = ADVA_TLV_OPCODE_FORWARD_TO_NP;
+    adva_tlv->domain                                        = 0;
+    adva_tlv->flow_id                                       = 0;
+    adva_tlv->tsg_ii.raw                                    = 0x11223344;
+    adva_tlv->tsg_i.raw                                     = 0xaabbccdd;
+
+    return packet;
+}
 
 /****************************************************************************
  * main
@@ -123,32 +202,67 @@ main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     
-    for (int i = 0; i < config.netif_size; i++) {
-        printf("netif '%s'\n", config.netif[i].name);
-        for (int j = 0; j < config.netif[i].vlan_size; j++) {
-            printf("    vlan '%d'\n", config.netif[i].vlan[j].vid);
-            if (config.netif[i].vlan[j].gateway_configured) {
-                LOG_MAC(&(config.netif[i].vlan[j].gateway.mac_address), mac_str);
-                LOG_IPV4(&(config.netif[i].vlan[j].gateway.ipv4_address), ipv4_str);
-                printf("        gateway %s %s\n", mac_str, ipv4_str);
-            }
+    {
+        netif_t                         netif;
+        raw_packet_t                    raw_packet;
 
-            if (config.netif[i].vlan[j].ptp_configured) {
-                for (int k = 0; k < config.netif[i].vlan[j].ptp.slave_size; k++) {
+        if (!netif_init(&netif, config.netif[0].name)) {
+            return false;
+        }
 
+        raw_packet_init(&raw_packet);
+
+        for (int i = 0; i < config.netif_size; i++) {
+            printf("netif '%s'\n", config.netif[i].name);
+            for (int j = 0; j < config.netif[i].vlan_size; j++) {
+                printf("    vlan '%d'\n", config.netif[i].vlan[j].vid);
+                if (config.netif[i].vlan[j].gateway_configured) {
+                    LOG_MAC(&(config.netif[i].vlan[j].gateway.mac_address), mac_str);
+                    LOG_IPV4(&(config.netif[i].vlan[j].gateway.ipv4_address), ipv4_str);
+                    printf("        gateway %s %s\n", mac_str, ipv4_str);
                 }
-            }
 
-            if (config.netif[i].vlan[j].ntp_configured) {
-                for (int k = 0; k < config.netif[i].vlan[j].ntp.client_size; k++) {
-                    LOG_MAC(&(config.netif[i].vlan[j].ntp.client[k].mac_address), mac_str);
-                    LOG_IPV4(&(config.netif[i].vlan[j].ntp.client[k].ipv4_address), ipv4_str);
-                    printf("        client %s %s\n", mac_str, ipv4_str);
+                if (config.netif[i].vlan[j].ptp_configured) {
+                    for (int k = 0; k < config.netif[i].vlan[j].ptp.slave_size; k++) {
+
+                    }
+                }
+
+                if (config.netif[i].vlan[j].ntp_configured) {
+                    {
+                        LOG_MAC(&(config.netif[i].vlan[j].ntp.server.mac_address), mac_str);
+                        LOG_IPV4(&(config.netif[i].vlan[j].ntp.server.ipv4_address), ipv4_str);
+                        printf("        server %s %s\n", mac_str, ipv4_str);
+                    }
+                    for (int k = 0; k < config.netif[i].vlan[j].ntp.client_size; k++) {
+                        LOG_MAC(&(config.netif[i].vlan[j].ntp.client[k].mac_address), mac_str);
+                        LOG_IPV4(&(config.netif[i].vlan[j].ntp.client[k].ipv4_address), ipv4_str);
+                        printf("        client %s %s\n", mac_str, ipv4_str);
+
+                        {
+                            packet_t                       *packet;
+                            packet = create_ntp_req(&(config.netif[i].vlan[j].ntp.server), &(config.netif[i].vlan[j].ntp.client[k]));
+
+                            /* encode */
+                            if (packet_encode(&netif, packet, &raw_packet)) {
+                                LOG_PRINTLN(LOG_SIM, LOG_INFO, ("Successfully encoded packet"));
+                            } else {
+                                LOG_PRINTLN(LOG_SIM, LOG_ERROR, ("Error encoding packet"));
+                            }
+
+                            LOG_RAW_PACKET(LOG_SIM, LOG_INFO, &raw_packet, ("TX"));
+
+                            /* send */
+                            netif_frame_send(&netif, &raw_packet);
+
+                            object_release(packet);
+
+                        }
+                    }
                 }
             }
         }
     }
-    
     fprintf(stderr, "Exit!\n");
     
     return 0;

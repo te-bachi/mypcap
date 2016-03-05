@@ -36,8 +36,11 @@ create_ptp2_signaling_req(mac_address_t *slave_mac, ipv4_address_t *slave_ipv4)
     ptp2_signaling_header_t        *ptp2_signaling          = ptp2_signaling_header_new();
     ptp2_signaling_tlv_header_t    *ptp2_signaling_tlv      = ptp2_signaling_tlv_header_new();
 
-    mac_address_t                   master_mac              = { .addr = { 0x00, 0x01, 0x20, 0x02, 0x00, 0x06 } };
-    ipv4_address_t                  master_ipv4             = { .addr = {   10,   16,  4,    5 } };
+    //mac_address_t                   master_mac              = { .addr = { 0x00, 0x01, 0x20, 0x02, 0x00, 0x06 } };
+    //ipv4_address_t                  master_ipv4             = { .addr = {   10,   16,  4,    5 } };
+    //mac_address_t                   master_mac              = { .addr = { 0x00, 0x01, 0x20, 0x03, 0x57, 0xbd } };
+    mac_address_t                   master_mac              = { .addr = { 0x00, 0x01, 0x20, 0x03, 0x00, 0x44 } };
+    ipv4_address_t                  master_ipv4             = { .addr = { 192, 168, 4, 20 } };
 
     packet->head                                            = (header_t *) ether;
     ether->header.next                                      = (header_t *) ipv4;
@@ -93,7 +96,7 @@ create_ptp2_signaling_req(mac_address_t *slave_mac, ipv4_address_t *slave_ipv4)
     ptp2_signaling_tlv->request_unicast.msg.type            = PTP2_MESSAGE_TYPE_ANNOUNCE;
     ptp2_signaling_tlv->request_unicast.msg.unused          = 0;
     ptp2_signaling_tlv->request_unicast.log_period          = 0;
-    ptp2_signaling_tlv->request_unicast.duration            = 3000;
+    ptp2_signaling_tlv->request_unicast.duration            = 3600;
 
     return packet;
 }
@@ -112,7 +115,9 @@ main(int argc, char *argv[])
     uint64_t                        mac48;
 
     mac_address_t                   slave_mac   = { .addr = { 0x00, 0x80, 0xea, 0x39, 0x00, 0x1 } };
-    ipv4_address_t                  slave_ipv4  = { .addr = {   10, 16, 4, 10} };
+    ipv4_address_t                  slave_ipv4  = { .addr = {  192, 168, 5, 1} };
+    //mac_address_t                   slave_mac   = { .addr = { 0x00, 0x80, 0xea, 0x4d, 0xc6, 0x51 } };
+    //ipv4_address_t                  slave_ipv4  = { .addr = { 10, 4, 62, 122 } };
 
     if (argc != 2) {
         printf("usage: %s ifname\n", argv[0]);
@@ -128,27 +133,27 @@ main(int argc, char *argv[])
 
     header = packet->head;
 
-    while (header->klass->type != PACKET_TYPE_ETHERNET) {
+    while (header->klass->type != HEADER_TYPE_ETHERNET) {
         header = header->next;
     }
     ether = (ethernet_header_t *) header;
 
-    while (header->klass->type != PACKET_TYPE_IPV4) {
+    while (header->klass->type != HEADER_TYPE_IPV4) {
         header = header->next;
     }
     ipv4 = (ipv4_header_t *) header;
 
-    while (header->klass->type != PACKET_TYPE_PTP2) {
+    while (header->klass->type != HEADER_TYPE_PTP2) {
         header = header->next;
     }
     ptp2 = (ptp2_header_t *) header;
 
-    while (header->klass->type != PACKET_TYPE_PTP2_SIGNALING_TLV) {
+    while (header->klass->type != HEADER_TYPE_PTP2_SIGNALING_TLV) {
         header = header->next;
     }
     ptp2_signaling_tlv = (ptp2_signaling_tlv_header_t *) header;
 
-    for (int i = 0; i < 90; i++) {
+    for (int i = 0; i < 1024; i++) {
         bzero(&raw_packet, sizeof(raw_packet));
 
         for (int k = 0; k < 3; k++) {
@@ -178,7 +183,7 @@ main(int argc, char *argv[])
             /* send */
             netif_frame_send(&netif, &raw_packet);
 
-            //usleep(150);
+            usleep(150);
         }
 
         /* modify MAC address */

@@ -1,10 +1,10 @@
 
+#include "packet/packet.h"
+#include "log.h"
+#include "log_network.h"
+
 #include <string.h>
 #include <inttypes.h>
-
-#include "log.h"
-
-#include "packet/packet.h"
 
 #define ICMPV4_STORAGE_INIT_SIZE    2
 #define ICMPV4_FAILURE_EXIT         icmpv4_header_free((header_t *) icmpv4); \
@@ -17,7 +17,7 @@ static icmpv4_header_t          icmpv4[ICMPV4_STORAGE_INIT_SIZE];
 static uint32_t                 idx[ICMPV4_STORAGE_INIT_SIZE];
 
 static header_class_t           klass = {
-    .type               = PACKET_TYPE_ICMPV4,
+    .type               = HEADER_TYPE_ICMPV4,
     .size               = sizeof(icmpv4_header_t),
     .free               = icmpv4_header_free
 };
@@ -71,7 +71,11 @@ icmpv4_packet_encode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet,
     icmpv4_header_t    *icmpv4;
     packet_len_t        len;
 
-    if (packet->tail->klass->type != PACKET_TYPE_ICMPV4) {
+    if (packet->tail->klass->type != HEADER_TYPE_ICMPV4) {
+        LOG_PRINTLN(LOG_HEADER_ICMPV4, LOG_ERROR, ("%s header encode: next header is not a %s header but a %s header!",
+                log_header_type(HEADER_TYPE_ICMPV4),
+                log_header_type(HEADER_TYPE_ICMPV4),
+                log_header_type(packet->tail->klass->type)));
         return 0;
     }
 

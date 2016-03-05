@@ -177,20 +177,20 @@ main(int argc, char *argv[])
     header = packet->head;
 
     /* get Ethernet header */
-    while (header->klass->type != PACKET_TYPE_ETHERNET) {
+    while (header->klass->type != HEADER_TYPE_ETHERNET) {
         header = header->next;
     }
     ether = (ethernet_header_t *) header;
 
     if (use_ipv4) {
         /* get IPv4 header */
-        while (header->klass->type != PACKET_TYPE_IPV4) {
+        while (header->klass->type != HEADER_TYPE_IPV4) {
             header = header->next;
         }
         ipv4 = (ipv4_header_t *) header;
     }
 
-    while (header->klass->type != PACKET_TYPE_PTP2) {
+    while (header->klass->type != HEADER_TYPE_PTP2) {
         header = header->next;
     }
     ptp2 = (ptp2_header_t *) header;

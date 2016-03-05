@@ -1,7 +1,7 @@
 
-
 #include "packet/packet.h"
 #include "log.h"
+#include "log_network.h"
 
 #include <string.h>
 #include <inttypes.h>
@@ -15,7 +15,7 @@ static ptp2_header_t            ptp2[PTP2_STORAGE_INIT_SIZE];
 static uint32_t                 idx[PTP2_STORAGE_INIT_SIZE];
 
 static header_class_t           klass = {
-    .type               = PACKET_TYPE_PTP2,
+    .type               = HEADER_TYPE_PTP2,
     .size               = sizeof(ptp2_header_t),
     .free               = ptp2_header_free
 };
@@ -68,7 +68,11 @@ ptp2_header_encode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, p
     ptp2_header_t      *ptp2;
     packet_len_t        len;
 
-    if (packet->tail->klass->type != PACKET_TYPE_PTP2) {
+    if (packet->tail->klass->type != HEADER_TYPE_PTP2) {
+        LOG_PRINTLN(LOG_HEADER_PTP2, LOG_ERROR, ("%s header encode: next header is not a %s header but a %s header!",
+                log_header_type(HEADER_TYPE_PTP2),
+                log_header_type(HEADER_TYPE_PTP2),
+                log_header_type(packet->tail->klass->type)));
         return 0;
     }
 

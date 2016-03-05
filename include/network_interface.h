@@ -56,7 +56,14 @@ struct _netif_t {
 };
 
 struct _vlan_t {
-    uint16_t                vid;
+    union {
+        uint16_t        tci;            /* Tag Control Information */
+        struct {
+            uint16_t    vid : 12;       /* VLAN Identifier */
+            uint16_t    dei : 1;        /* Drop Eligible Indicator (former CFI - Canonical Format Indicator) */
+            uint16_t    pcp : 3;        /* Priority Code Point (= Priority) */
+        };
+    };
 };
 
 struct _ipv4_alias_t {

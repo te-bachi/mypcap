@@ -1,6 +1,7 @@
 
 #include "packet/packet.h"
 #include "log.h"
+#include "log_network.h"
 
 #include <string.h>
 #include <inttypes.h>
@@ -24,7 +25,7 @@ static dns_header_t             dns[DNS_STORAGE_INIT_SIZE];
 static uint32_t                 idx[DNS_STORAGE_INIT_SIZE];
 
 static header_class_t           klass = {
-    .type               = PACKET_TYPE_DNS,
+    .type               = HEADER_TYPE_DNS,
     .size               = sizeof(dns_header_t),
     .free               = dns_header_free
 };

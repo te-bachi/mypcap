@@ -1,5 +1,7 @@
+
 #include "packet/packet.h"
 #include "log.h"
+#include "log_network.h"
 
 #include <string.h>
 #include <inttypes.h>
@@ -15,7 +17,7 @@ static ipv4_header_t            ipv4[IPV4_STORAGE_INIT_SIZE];
 static uint32_t                 idx[IPV4_STORAGE_INIT_SIZE];
 
 static header_class_t           klass = {
-    .type               = PACKET_TYPE_IPV4,
+    .type               = HEADER_TYPE_IPV4,
     .size               = sizeof(ipv4_header_t),
     .free               = ipv4_header_free
 };
@@ -68,7 +70,11 @@ ipv4_header_encode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, p
     ipv4_header_t  *ipv4;
     packet_len_t    len;
     
-    if (packet->tail->klass->type != PACKET_TYPE_IPV4) {
+    if (packet->tail->klass->type != HEADER_TYPE_IPV4) {
+        LOG_PRINTLN(LOG_HEADER_IPV4, LOG_ERROR, ("%s header encode: next header is not a %s header but a %s header!",
+                log_header_type(HEADER_TYPE_IPV4),
+                log_header_type(HEADER_TYPE_IPV4),
+                log_header_type(packet->tail->klass->type)));
         return 0;
     }
     ipv4            = (ipv4_header_t *) packet->tail;

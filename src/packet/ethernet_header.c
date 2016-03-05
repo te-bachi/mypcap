@@ -1,7 +1,7 @@
 
-#include "packet/ethernet_header.h"
-#include "packet/header_storage.h"
+#include "packet/packet.h"
 #include "log.h"
+#include "log_network.h"
 
 #include <string.h>
 #include <inttypes.h>
@@ -14,7 +14,7 @@ static ethernet_header_t        ether[ETHERNET_STORAGE_INIT_SIZE];
 static uint32_t                 idx[ETHERNET_STORAGE_INIT_SIZE];
 
 static header_class_t           klass = {
-    .type               = PACKET_TYPE_ETHERNET,
+    .type               = HEADER_TYPE_ETHERNET,
     .size               = sizeof(ethernet_header_t),
     .free               = ethernet_header_free
 };
@@ -68,7 +68,11 @@ ethernet_header_encode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packe
     packet_len_t        ethernet_len;   /**< length of this header */
     packet_len_t        len;            /**< length of the whole packet */
     
-    if (packet->tail->klass->type != PACKET_TYPE_ETHERNET) {
+    if (packet->tail->klass->type != HEADER_TYPE_ETHERNET) {
+        LOG_PRINTLN(LOG_HEADER_ETHERNET, LOG_ERROR, ("%s header encode: next header is not a %s header but a %s header!",
+                log_header_type(HEADER_TYPE_ETHERNET),
+                log_header_type(HEADER_TYPE_ETHERNET),
+                log_header_type(packet->tail->klass->type)));
         return 0;
     }
     ether           = (ethernet_header_t *) packet->tail;

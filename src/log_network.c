@@ -82,14 +82,14 @@ log_packet(const packet_t *packet)
     
     while (header != NULL) {
         switch (header->klass->type) {
-            case PACKET_TYPE_ETHERNET:              log_ethernet_header             ((const ethernet_header_t *)            header);    break;
-            case PACKET_TYPE_IPV4:                  log_ipv4_header                 ((const ipv4_header_t *)                header);    break;
-            case PACKET_TYPE_UDPV4:                 log_udpv4_header                ((const udpv4_header_t *)               header);    break;
-            case PACKET_TYPE_DNS:                   log_dns_header                  ((const dns_header_t *)                 header);    break;
-            case PACKET_TYPE_PTP2:                  log_ptp2_header                 ((const ptp2_header_t *)                header);    break;
-            case PACKET_TYPE_PTP2_ANNOUNCE:         log_ptp2_announce_header        ((const ptp2_announce_header_t *)       header);    break;
-            case PACKET_TYPE_PTP2_SIGNALING:        log_ptp2_signaling_header       ((const ptp2_signaling_header_t *)      header);    break;
-            case PACKET_TYPE_PTP2_SIGNALING_TLV:    log_ptp2_signaling_tlv_header   ((const ptp2_signaling_tlv_header_t *)  header);    break;
+            case HEADER_TYPE_ETHERNET:              log_ethernet_header             ((const ethernet_header_t *)            header);    break;
+            case HEADER_TYPE_IPV4:                  log_ipv4_header                 ((const ipv4_header_t *)                header);    break;
+            case HEADER_TYPE_UDPV4:                 log_udpv4_header                ((const udpv4_header_t *)               header);    break;
+            case HEADER_TYPE_DNS:                   log_dns_header                  ((const dns_header_t *)                 header);    break;
+            case HEADER_TYPE_PTP2:                  log_ptp2_header                 ((const ptp2_header_t *)                header);    break;
+            case HEADER_TYPE_PTP2_ANNOUNCE:         log_ptp2_announce_header        ((const ptp2_announce_header_t *)       header);    break;
+            case HEADER_TYPE_PTP2_SIGNALING:        log_ptp2_signaling_header       ((const ptp2_signaling_header_t *)      header);    break;
+            case HEADER_TYPE_PTP2_SIGNALING_TLV:    log_ptp2_signaling_tlv_header   ((const ptp2_signaling_tlv_header_t *)  header);    break;
             default:                                                                                                                    break;
         }
         header = header->next;
@@ -312,6 +312,36 @@ log_ipv6(const ipv6_address_t *ipv6, uint8_t *str)
         str[len++] = ':';
     }
     str[--len] = '\0';
+}
+
+const char *
+log_header_type(const header_type_t header_type)
+{
+    switch (header_type) {
+        case HEADER_TYPE_ETHERNET:              return "Ethernet";
+        case HEADER_TYPE_VLAN:                  return "VLAN";
+        case HEADER_TYPE_ARP:                   return "ARP";
+        case HEADER_TYPE_IPV4:                  return "IP4v";
+        case HEADER_TYPE_IPV6:                  return "IPv6";
+        case HEADER_TYPE_ICMPV4:                return "ICMPv4";
+        case HEADER_TYPE_UDPV4:                 return "UDPv4";
+        case HEADER_TYPE_TCPV4:                 return "TCPv4";
+        case HEADER_TYPE_ICMPV6:                return "ICMPv6";
+        case HEADER_TYPE_UDPV6:                 return "UDPv6";
+        case HEADER_TYPE_TCPV6:                 return "TCPv6";
+        case HEADER_TYPE_DNS:                   return "DNS";
+        case HEADER_TYPE_PTP2:                  return "PTPv2";
+        case HEADER_TYPE_PTP2_SYNC:             return "PTPv2 Sync";
+        case HEADER_TYPE_PTP2_ANNOUNCE:         return "PTPv2 Announce";
+        case HEADER_TYPE_PTP2_DELAY_REQ:        return "PTPv2 Delay Request";
+        case HEADER_TYPE_PTP2_DELAY_RESP:       return "PTPv2 Delay Response";
+        case HEADER_TYPE_PTP2_SIGNALING:        return "PTPv2 Signaling";
+        case HEADER_TYPE_PTP2_SIGNALING_TLV:    return "PTPv2 Signaling TLV";
+        case HEADER_TYPE_NTP:                   return "NTP";
+        case HEADER_TYPE_IGNORE:                return "Ignore";
+        case HEADER_TYPE_ALL:                   return "All";
+        default:                                return "unknow";
+    }
 }
 
 const char *

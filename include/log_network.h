@@ -55,6 +55,7 @@ void        log_mac                         (const mac_address_t            *mac
 void        log_ipv4                        (const ipv4_address_t           *ipv4,  uint8_t *str);
 void        log_ipv6                        (const ipv6_address_t           *ipv6,  uint8_t *str);
 
+const char *log_header_type                 (const header_type_t header_type);
 const char *log_ether_type                  (const uint16_t ether_type);
 const char *log_ipv4_protocol               (const uint8_t ipv4_protocol);
 const char *log_ipv6_protocol               (const uint8_t ipv6_protocol);

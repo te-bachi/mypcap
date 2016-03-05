@@ -2,6 +2,7 @@
 #include "packet/packet.h"
 #include "packet/port.h"
 #include "log.h"
+#include "log_network.h"
 
 #include <stdbool.h>
 #include <string.h>
@@ -15,7 +16,7 @@ static udpv4_header_t           udpv4[UDPV4_STORAGE_INIT_SIZE];
 static uint32_t                 idx[UDPV4_STORAGE_INIT_SIZE];
 
 static header_class_t           klass = {
-    .type               = PACKET_TYPE_UDPV4,
+    .type               = HEADER_TYPE_UDPV4,
     .size               = sizeof(udpv4_header_t),
     .free               = udpv4_header_free
 };
@@ -64,9 +65,19 @@ udpv4_header_encode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, 
     packet_offset_t pseudo_offset       = 0;
     uint32_t        zero                = 0;
     
-    if (packet->tail->klass->type != PACKET_TYPE_IPV4 || packet->tail->next == NULL || packet->tail->next->klass->type != PACKET_TYPE_UDPV4) {
+    if (packet->tail->next == NULL) {
+        LOG_PRINTLN(LOG_HEADER_UDPV4, LOG_ERROR, ("%s header encode: next header is not a %s header but NULL!",
+                log_header_type(HEADER_TYPE_UDPV4),
+                log_header_type(HEADER_TYPE_UDPV4)));
+        return 0;
+    } else if (packet->tail->klass->type != HEADER_TYPE_IPV4 || packet->tail->next->klass->type != HEADER_TYPE_UDPV4) {
+        LOG_PRINTLN(LOG_HEADER_UDPV4, LOG_ERROR, ("%s header encode: next header is not a %s header but a %s header!",
+                log_header_type(HEADER_TYPE_UDPV4),
+                log_header_type(HEADER_TYPE_UDPV4),
+                log_header_type(packet->tail->next->klass->type)));
         return 0;
     }
+
     ipv4            = (ipv4_header_t *)  packet->tail;
     udpv4           = (udpv4_header_t *) packet->tail->next;
     packet->tail    = udpv4->header.next;
@@ -76,6 +87,7 @@ udpv4_header_encode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, 
         case PORT_DNS:              len = dns_header_encode(netif, packet, raw_packet, offset + UDPV4_HEADER_LEN);      break;
         case PORT_PTP2_EVENT:
         case PORT_PTP2_GENERAL:     len = ptp2_header_encode(netif, packet, raw_packet, offset + UDPV4_HEADER_LEN);     break;
+        case PORT_NTP:              len = ntp_header_encode(netif, packet, raw_packet, offset + UDPV4_HEADER_LEN);      break;
         default:                                                                                                        return 0;
     }
     
@@ -167,10 +179,11 @@ udpv4_header_decode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, 
     }
     
     switch (low_port) {
-        case PORT_DNS:      udpv4->header.next = dns_header_decode(netif, packet, raw_packet, offset + UDPV4_HEADER_LEN);       break;
+        case PORT_DNS:              udpv4->header.next = dns_header_decode(netif, packet, raw_packet, offset + UDPV4_HEADER_LEN);       break;
         case PORT_PTP2_EVENT:
         case PORT_PTP2_GENERAL:     udpv4->header.next = ptp2_header_decode(netif, packet, raw_packet, offset + UDPV4_HEADER_LEN);      break;
-        default:            break;
+        case PORT_NTP:              udpv4->header.next = ntp_header_decode(netif, packet, raw_packet, offset + UDPV4_HEADER_LEN);       break;
+        default:                                                                                                                        break;
     }
     
     /* if next header is filled in, return... */
@@ -183,6 +196,7 @@ udpv4_header_decode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, 
         case PORT_DNS:              udpv4->header.next = dns_header_decode(netif, packet, raw_packet, offset + UDPV4_HEADER_LEN);       break;
         case PORT_PTP2_EVENT:
         case PORT_PTP2_GENERAL:     udpv4->header.next = ptp2_header_decode(netif, packet, raw_packet, offset + UDPV4_HEADER_LEN);      break;
+        case PORT_NTP:              udpv4->header.next = ntp_header_decode(netif, packet, raw_packet, offset + UDPV4_HEADER_LEN);       break;
         default:                    UDPV4_FAILURE_EXIT;
     }
     
