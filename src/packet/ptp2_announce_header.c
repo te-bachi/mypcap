@@ -39,7 +39,7 @@ ptp2_announce_header_new(void)
 {
     ptp2_announce_header_t *header = (ptp2_announce_header_t *) header_storage_new(&storage);
 
-    LOG_PRINTLN(LOG_HEADER_PTP2_ANNOUNCE, LOG_DEBUG, ("PTP2 announce header new 0x%016" PRIxPTR, (unsigned long) header));
+    LOG_PRINTLN(LOG_HEADER_PTP2_ANNOUNCE, LOG_DEBUG, ("PTP2 announce header new 0x%016" PRIxPTR, (uintptr_t) header));
 
     return header;
 }
@@ -49,7 +49,7 @@ ptp2_announce_header_free(header_t *header)
 {
     if (header->next != NULL)   header->next->klass->free(header->next);
 
-    LOG_PRINTLN(LOG_HEADER_PTP2_ANNOUNCE, LOG_DEBUG, ("PTP2 announce header free 0x%016" PRIxPTR, (unsigned long) header));
+    LOG_PRINTLN(LOG_HEADER_PTP2_ANNOUNCE, LOG_DEBUG, ("PTP2 announce header free 0x%016" PRIxPTR, (uintptr_t) header));
 
     header_storage_free(header);
 }

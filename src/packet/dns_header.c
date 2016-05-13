@@ -72,7 +72,7 @@ dns_header_new(void)
 {
     dns_header_t *header = (dns_header_t *) header_storage_new(&storage);
     
-    LOG_PRINTLN(LOG_HEADER_DNS, LOG_DEBUG, ("DNS header new 0x%016" PRIxPTR, (unsigned long) header));
+    LOG_PRINTLN(LOG_HEADER_DNS, LOG_DEBUG, ("DNS header new 0x%016" PRIxPTR, (uintptr_t) header));
     
     return header;
 }
@@ -80,7 +80,7 @@ dns_header_new(void)
 void
 dns_header_free(header_t *header)
 {
-    LOG_PRINTLN(LOG_HEADER_DNS, LOG_DEBUG, ("DNS header free 0x%016" PRIxPTR, (unsigned long) header));
+    LOG_PRINTLN(LOG_HEADER_DNS, LOG_DEBUG, ("DNS header free 0x%016" PRIxPTR, (uintptr_t) header));
     
     header_storage_free(header);
 }

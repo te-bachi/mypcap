@@ -30,7 +30,7 @@ header_storage_new(header_storage_t *storage)
             header->prev                            = NULL;
             header->next                            = NULL;
             
-            LOG_PRINTLN(LOG_HEADER_STORAGE, LOG_DEBUG, ("found header storage entry = 0x%016" PRIxPTR ", header = 0x%016" PRIxPTR ", index = %" PRIu32, (unsigned long) entry, (unsigned long) header, idx));
+            LOG_PRINTLN(LOG_HEADER_STORAGE, LOG_DEBUG, ("found header storage entry = 0x%016" PRIxPTR ", header = 0x%016" PRIxPTR ", index = %" PRIu32, (uintptr_t) entry, (uintptr_t) header, idx));
             
             found                                   = true;
             entry->available_size--;
@@ -55,7 +55,7 @@ header_storage_new(header_storage_t *storage)
                 /* assign new entry */
                 entry                               = entry->next;
                 
-                LOG_PRINTLN(LOG_HEADER_STORAGE, LOG_DEBUG, ("allocate header storage entry = 0x%016" PRIxPTR ", size = %" PRIu32, (unsigned long) entry, size));
+                LOG_PRINTLN(LOG_HEADER_STORAGE, LOG_DEBUG, ("allocate header storage entry = 0x%016" PRIxPTR ", size = %" PRIu32, (uintptr_t) entry, size));
                 
                 header_storage_assign(storage, entry, size);
             }
@@ -72,7 +72,7 @@ header_storage_free(header_t *header)
     
     entry = header->entry;
     
-    LOG_PRINTLN(LOG_HEADER_STORAGE, LOG_DEBUG, ("free header = 0x%016" PRIxPTR ", index = %" PRIu32 ", header storage entry = 0x%016" PRIxPTR ", available size = %" PRIu32, (unsigned long) header, header->idx, (unsigned long) entry, entry->available_size));
+    LOG_PRINTLN(LOG_HEADER_STORAGE, LOG_DEBUG, ("free header = 0x%016" PRIxPTR ", index = %" PRIu32 ", header storage entry = 0x%016" PRIxPTR ", available size = %" PRIu32, (uintptr_t) header, header->idx, (uintptr_t) entry, entry->available_size));
     
     entry->available_idxs[entry->available_size] = header->idx;
     entry->available_size++;
@@ -98,7 +98,7 @@ header_storage_assign(header_storage_t *storage, header_storage_entry_t *entry, 
         header->idx                     = idx;
         entry->available_idxs[idx]      = idx;
         
-        LOG_PRINTLN(LOG_HEADER_STORAGE, LOG_DEBUG, ("assign header = 0x%016" PRIxPTR ", index = %" PRIu32, (unsigned long) header, idx));
+        LOG_PRINTLN(LOG_HEADER_STORAGE, LOG_DEBUG, ("assign header = 0x%016" PRIxPTR ", index = %" PRIu32, (uintptr_t) header, idx));
     }
 }
 

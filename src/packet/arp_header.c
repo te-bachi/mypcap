@@ -39,7 +39,7 @@ arp_header_new(void)
 {
     arp_header_t *header = (arp_header_t *) header_storage_new(&storage);
 
-    LOG_PRINTLN(LOG_HEADER_ARP, LOG_DEBUG, ("ARP header new 0x%016" PRIxPTR, (unsigned long) header));
+    LOG_PRINTLN(LOG_HEADER_ARP, LOG_DEBUG, ("ARP header new 0x%016" PRIxPTR, (uintptr_t) header));
 
     return header;
 }
@@ -49,7 +49,7 @@ arp_header_free(header_t *header)
 {
     if (header->next != NULL)   header->next->klass->free(header->next);
 
-    LOG_PRINTLN(LOG_HEADER_ARP, LOG_DEBUG, ("ARP header free 0x%016" PRIxPTR, (unsigned long) header));
+    LOG_PRINTLN(LOG_HEADER_ARP, LOG_DEBUG, ("ARP header free 0x%016" PRIxPTR, (uintptr_t) header));
 
     header_storage_free(header);
 }
