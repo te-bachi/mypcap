@@ -135,6 +135,9 @@ ntp_header_decode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, pa
      * +   20 bytes = MAC
      * + > 36 bytes = extension field + MAC or more
      */
+     if (raw_packet->len == (offset + NTP_HEADER_MIN_LEN + ADVA_TLV_HEADER_LEN)) {
+         ntp->header.next = adva_tlv_header_decode(netif, packet, raw_packet, offset + NTP_HEADER_MIN_LEN);
+     }
 
     /* fetch the rest */
     ntp->flags_raw                                             = raw_packet->data[offset + NTP_HEADER_OFFSET_FLAGS];

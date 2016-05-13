@@ -39,7 +39,7 @@ adva_tlv_header_new(void)
 {
     adva_tlv_header_t *header = (adva_tlv_header_t *) header_storage_new(&storage);
 
-    LOG_PRINTLN(LOG_HEADER_NTP, LOG_DEBUG, ("NTP header new 0x%016" PRIxPTR, (uintptr_t) header));
+    LOG_PRINTLN(LOG_HEADER_ADVA_TLV, LOG_DEBUG, ("ADVA TLV header new 0x%016" PRIxPTR, (uintptr_t) header));
 
     return header;
 }
@@ -49,7 +49,7 @@ adva_tlv_header_free(header_t *header)
 {
     if (header->next != NULL)   header->next->klass->free(header->next);
 
-    LOG_PRINTLN(LOG_HEADER_NTP, LOG_DEBUG, ("NTP header free 0x%016" PRIxPTR, (uintptr_t) header));
+    LOG_PRINTLN(LOG_HEADER_ADVA_TLV, LOG_DEBUG, ("ADVA TLV header free 0x%016" PRIxPTR, (uintptr_t) header));
 
     header_storage_free(header);
 }
@@ -98,7 +98,20 @@ adva_tlv_header_encode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packe
 header_t *
 adva_tlv_header_decode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, packet_offset_t offset)
 {
+    adva_tlv_header_t *adva_tlv = adva_tlv_header_new();
 
-    return (header_t *) NULL;
+    if (raw_packet->len < (offset + ADVA_TLV_HEADER_LEN)) {
+        LOG_PRINTLN(LOG_HEADER_NTP, LOG_ERROR, ("decode ADVA TLV header: size too small (present=%u, required=%u)", raw_packet->len, (offset + ADVA_TLV_HEADER_LEN)));
+        ADVA_TLV_FAILURE_EXIT;
+    }
+
+    adva_tlv->type                              = raw_packet->data[offset + ADVA_TLV_HEADER_OFFSET_TYPE];
+    adva_tlv->len                               = raw_packet->data[offset + ADVA_TLV_HEADER_OFFSET_LEN];
+    adva_tlv->opcode_domain                     = raw_packet->data[offset + ADVA_TLV_HEADER_OFFSET_OPCODE_DOMAIN];
+    adva_tlv->flow_id                           = raw_packet->data[offset + ADVA_TLV_HEADER_OFFSET_FLOW_ID];
+    uint8_to_uint32(&(adva_tlv->tsg_ii.raw),    &(raw_packet->data[offset + ADVA_TLV_HEADER_OFFSET_TSG_II]));
+    uint8_to_uint32(&(adva_tlv->tsg_i.raw),     &(raw_packet->data[offset + ADVA_TLV_HEADER_OFFSET_TSG_I]));
+    
+    return (header_t *) adva_tlv;
 }
 

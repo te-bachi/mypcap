@@ -23,6 +23,15 @@
 
 void usage(int argc, char *argv[], const char *msg);
 
+const char ntp_adva_tlv_packet[] = {
+    0x00, 0x80, 0xea, 0x7f, 0x46, 0x21, 0x00, 0x0d, 0xb9, 0x3f, 0x9d, 0xbd, 0x08, 0x00, 0x45, 0x00,
+    0x00, 0x58, 0x00, 0x00, 0x00, 0x00, 0x80, 0x11, 0x36, 0x91, 0x01, 0x01, 0x01, 0x02, 0x01, 0x01,
+    0x01, 0x01, 0x9e, 0x85, 0x00, 0x7b, 0x00, 0x44, 0xfc, 0xf8, 0x23, 0x01, 0x06, 0xe9, 0x00, 0x00,
+    0x00, 0x55, 0x00, 0x00, 0x0b, 0x47, 0x4c, 0x4f, 0x43, 0x4c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0xda, 0xdc, 0x85, 0x2b, 0x00, 0x00, 0x07, 0x8c, 0x0b, 0x0c, 0x82, 0x03, 0x9a, 0xbf,
+    0xe8, 0xd2, 0xc0, 0xb3, 0x61, 0x5c
+};
 
 packet_t *create_ntp_req(config_ntp_t *ntp_config, uint32_t id, config_ntp_peer_t *server, config_ntp_peer_t *client, uint32_t idx);
 
@@ -232,6 +241,7 @@ main(int argc, char *argv[])
     {
         netif_t                         netif;
         raw_packet_t                    raw_packet;
+        packet_t                       *packet;
         uint32_t                        id = 0;
 
         if (!netif_init(&netif, config.netif[0].name)) {
@@ -240,6 +250,21 @@ main(int argc, char *argv[])
 
         raw_packet_init(&raw_packet);
 
+        memcpy(&(raw_packet.data), ntp_adva_tlv_packet, sizeof(ntp_adva_tlv_packet));
+        raw_packet.len = sizeof(ntp_adva_tlv_packet);
+        
+        /* decode */
+        packet = packet_decode(&netif, &raw_packet);
+        if (packet != NULL) {
+            LOG_PRINTLN(LOG_SIM, LOG_INFO, ("Successfully decoded packet"));
+            LOG_PACKET(LOG_SIM, LOG_INFO, packet, ("RX"));
+            object_release(packet);
+            
+        } else {
+            LOG_PRINTLN(LOG_SIM, LOG_ERROR, ("Error decoding packet"));
+        }
+        
+        
         for (int i = 0; i < config.netif_size; i++) {
             printf("netif '%s'\n", config.netif[i].name);
             for (int j = 0; j < config.netif[i].vlan_size; j++) {
@@ -268,7 +293,6 @@ main(int argc, char *argv[])
                         printf("        client %s %s\n", mac_str, ipv4_str);
 
                         {
-                            packet_t                       *packet;
                             packet = create_ntp_req(&(config.netif[i].vlan[j].ntp), id++, &(config.netif[i].vlan[j].ntp.server), &(config.netif[i].vlan[j].ntp.client[k]), k);
                             /* encode */
                             if (packet_encode(&netif, packet, &raw_packet)) {

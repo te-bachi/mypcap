@@ -34,6 +34,10 @@ struct _ntp_header_t {
             uint8_t         leap_indicator  : 2;
             uint8_t         version         : 3;
             uint8_t         mode            : 3;
+#else
+            uint8_t         mode            : 3;
+            uint8_t         version         : 3;
+            uint8_t         leap_indicator  : 2;
 #endif
         };
     };
