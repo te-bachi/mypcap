@@ -127,6 +127,9 @@ ntp_header_decode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, pa
         NTP_FAILURE_EXIT;
     }
 
+     /* parse NTP flags */
+    ntp->flags_raw                                             = raw_packet->data[offset + NTP_HEADER_OFFSET_FLAGS];
+        
     /* check length of packet to see, if extension fields,
      * message authentication code (MAC) or an
      * ADVA TLV is appended
@@ -135,12 +138,11 @@ ntp_header_decode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, pa
      * +   20 bytes = MAC
      * + > 36 bytes = extension field + MAC or more
      */
-     if (raw_packet->len == (offset + NTP_HEADER_MIN_LEN + ADVA_TLV_HEADER_LEN)) {
+     if (ntp->mode == NTP_MODE_CLIENT && raw_packet->len == (offset + NTP_HEADER_MIN_LEN + ADVA_TLV_HEADER_LEN)) {
          ntp->header.next = adva_tlv_header_decode(netif, packet, raw_packet, offset + NTP_HEADER_MIN_LEN);
      }
 
     /* fetch the rest */
-    ntp->flags_raw                                             = raw_packet->data[offset + NTP_HEADER_OFFSET_FLAGS];
     ntp->stratum                                               = raw_packet->data[offset + NTP_HEADER_OFFSET_PEER_CLOCK_STRATUM];
     ntp->polling_interval                                      = raw_packet->data[offset + NTP_HEADER_OFFSET_PEER_POLLING_INTERVAL];
     ntp->clock_precision                                       = raw_packet->data[offset + NTP_HEADER_OFFSET_PEER_CLOCK_PRECISION];
