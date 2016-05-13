@@ -37,7 +37,7 @@ create_ptp2_delay_req_ipv4(mac_address_t *slave_mac, ipv4_address_t *slave_ipv4)
     ptp2_delay_req_header_t    *ptp2_delay_req          = ptp2_delay_req_header_new();
 
     mac_address_t               master_mac              = { .addr = { 0x00, 0x01, 0x20, 0x03, 0x00, 0x06 } };
-    ipv4_address_t              master_ipv4             = { .addr = {   11,   14,  122,    1 } };
+    ipv4_address_t              master_ipv4             = { { .addr = {   11,   14,  122,    1 } } };
 
     packet->head                                        = (header_t *) ether;
     ether->header.next                                  = (header_t *) ipv4;
@@ -144,7 +144,7 @@ main(int argc, char *argv[])
     mac_address_t                   multicast_mac_f     = { .addr = { 0x01, 0x1b, 0x19, 0x00, 0x00, 0x00 } };
     //mac_address_t                   multicast_mac_nf    = { .addr = { 0x01, 0x80, 0xc2, 0x00, 0x00, 0x0e } };
     mac_address_t                   slave_mac           = { .addr = { 0x00, 0x80, 0xea, 0x39, 0x00, 0x1 } };
-    ipv4_address_t                  slave_ipv4          = { .addr = {   11,   14,  122,    2 } };
+    ipv4_address_t                  slave_ipv4          = { { .addr = {   11,   14,  122,    2 } } };
 
     if (argc != 3) {
         printf("usage: %s <ifname> <layer2 | ipv4>\n", argv[0]);

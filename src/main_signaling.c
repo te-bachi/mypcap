@@ -40,7 +40,7 @@ create_ptp2_signaling_req(mac_address_t *slave_mac, ipv4_address_t *slave_ipv4)
     //ipv4_address_t                  master_ipv4             = { .addr = {   10,   16,  4,    5 } };
     //mac_address_t                   master_mac              = { .addr = { 0x00, 0x01, 0x20, 0x03, 0x57, 0xbd } };
     mac_address_t                   master_mac              = { .addr = { 0x00, 0x01, 0x20, 0x03, 0x00, 0x44 } };
-    ipv4_address_t                  master_ipv4             = { .addr = { 192, 168, 4, 20 } };
+    ipv4_address_t                  master_ipv4             = { { .addr = { 192, 168, 4, 20 } } };
 
     packet->head                                            = (header_t *) ether;
     ether->header.next                                      = (header_t *) ipv4;
@@ -117,7 +117,7 @@ main(int argc, char *argv[])
     uint64_t                        mac48;
 
     mac_address_t                   slave_mac   = { .addr = { 0x00, 0x80, 0xea, 0x39, 0x00, 0x1 } };
-    ipv4_address_t                  slave_ipv4  = { .addr = {  192, 168, 5, 1} };
+    ipv4_address_t                  slave_ipv4  = { { .addr = {  192, 168, 5, 1} } };
     //mac_address_t                   slave_mac   = { .addr = { 0x00, 0x80, 0xea, 0x4d, 0xc6, 0x51 } };
     //ipv4_address_t                  slave_ipv4  = { .addr = { 10, 4, 62, 122 } };
 

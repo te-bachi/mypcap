@@ -16,7 +16,7 @@
 #define LINE_LEN 16
 
 mac_address_t           master_mac      = { .addr = { 0x00, 0x01, 0x20, 0x02, 0x00, 0x06 } };
-ipv4_address_t          master_ipv4     = { .addr = {   10,    4,   62,    101 } };
+ipv4_address_t          master_ipv4     = { { .addr = {   10,    4,   62,    101 } } };
 
 packet_t               *create_ptp2_arp_reply(mac_address_t *arp_mac, ipv4_address_t *arp_ipv4);
 
