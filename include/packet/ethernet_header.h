@@ -39,9 +39,15 @@ typedef struct _vlan_header_t {
     union {
         uint16_t        tci;            /* Tag Control Information */
         struct {
+#if defined(__PPC__) || defined(__ARMEB__)
+            uint16_t    pcp : 3;        /* Priority Code Point (= Priority) */
+            uint16_t    dei : 1;        /* Drop Eligible Indicator (former CFI - Canonical Format Indicator) */
+            uint16_t    vid : 12;       /* VLAN Identifier */
+#else
             uint16_t    vid : 12;       /* VLAN Identifier */
             uint16_t    dei : 1;        /* Drop Eligible Indicator (former CFI - Canonical Format Indicator) */
             uint16_t    pcp : 3;        /* Priority Code Point (= Priority) */
+#endif
         };
     };
     uint16_t            type;

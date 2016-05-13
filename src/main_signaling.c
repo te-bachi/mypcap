@@ -98,6 +98,8 @@ create_ptp2_signaling_req(mac_address_t *slave_mac, ipv4_address_t *slave_ipv4)
     ptp2_signaling_tlv->request_unicast.log_period          = 0;
     ptp2_signaling_tlv->request_unicast.duration            = 3600;
 
+    LOG_PACKET(LOG_SIM, LOG_INFO, packet, ("TX"));
+    
     return packet;
 }
 

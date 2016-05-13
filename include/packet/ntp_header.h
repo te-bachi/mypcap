@@ -35,18 +35,43 @@ struct _ntp_header_t {
             uint8_t         leap_indicator  : 2;
         };
     };
+    /* represents distance from primary source */
     uint8_t                 stratum;
-    uint8_t                 polling_interval;
-    int8_t                  clock_precision;    /* log2(clock_precision) */
+    
+    /* indicating the maximum interval
+     * between successive messages, in seconds to the nearest
+     * power of two. */
+    int8_t                  polling_interval;   /* log2 */
+    
+    /* indicating the precision of the
+     * local clock, in seconds to the nearest power of two. */
+    int8_t                  clock_precision;    /* log2 */
+    
+    /* 32-bit signed fixed-point number indicating
+     * the total roundtrip delay to the primary reference source,
+     * in seconds with fraction point between bits 15 and 16. */
     uint32_t                root_delay;
+    
+    /* 32-bit unsigned fixed-point number indicating
+     * the nominal error relative to the primary reference source, in
+     * seconds with fraction point between bits 15 and 16. */
     uint32_t                root_dispersion;
+    
     union {
         uint8_t             reference_id[NTP_REFERENCE_ID_LEN];
         ipv4_address_t      reference_ipv4;
     };
+    
+    /* time at which the local clock was last set or corrected */
     ntp_timestamp_t         reference_timestamp;
+    
+    /* T1: time at which the request departed the client for the server */
     ntp_timestamp_t         origin_timestamp;
+    
+    /* T2: time at which the request arrived at the server */
     ntp_timestamp_t         receive_timestamp;
+    
+    /* T3: time at which the reply departed the server for the client */
     ntp_timestamp_t         transmit_timestamp;
 };
 

@@ -99,7 +99,7 @@ ntp_header_encode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, pa
     uint32_to_uint8(&(raw_packet->data[offset + NTP_HEADER_OFFSET_TRANSMIT_TIMESTAMP_NANOSEC]),    &(ntp->transmit_timestamp.nanoseconds));
 
     /* is there an ADVA TLV appended? */
-    if (packet->tail->klass->type == HEADER_TYPE_ADVA_TLV) {
+    if (packet->tail != NULL && packet->tail->klass->type == HEADER_TYPE_ADVA_TLV) {
         len += adva_tlv_header_encode(netif, packet, raw_packet, offset + len);
 
         if (len == 0) {

@@ -24,10 +24,10 @@
 void usage(int argc, char *argv[], const char *msg);
 
 
-packet_t *create_ntp_req(config_ntp_peer_t *server, config_ntp_peer_t *client);
+packet_t *create_ntp_req(config_ntp_t *ntp_config, uint32_t id, config_ntp_peer_t *server, config_ntp_peer_t *client, uint32_t idx);
 
 packet_t *
-create_ntp_req(config_ntp_peer_t *server, config_ntp_peer_t *client)
+create_ntp_req(config_ntp_t *ntp_config, uint32_t id, config_ntp_peer_t *server, config_ntp_peer_t *client, uint32_t idx)
 {
     packet_t                       *packet                  = packet_new();
     ethernet_header_t              *ether                   = ethernet_header_new();
@@ -36,22 +36,19 @@ create_ntp_req(config_ntp_peer_t *server, config_ntp_peer_t *client)
     ntp_header_t                   *ntp                     = ntp_header_new();
     adva_tlv_header_t              *adva_tlv                = adva_tlv_header_new();
 
-    packet->head                                            = (header_t *) ether;
-    ether->header.next                                      = (header_t *) ipv4;
-    ipv4->header.next                                       = (header_t *) udpv4;
-    udpv4->header.next                                      = (header_t *) ntp;
-    ntp->header.next                                        = (header_t *) adva_tlv;
-
     /* Ethernet */
+    packet->head                                            = (header_t *) ether;
     ether->dest                                             = server->mac_address;
     ether->src                                              = client->mac_address;
     ether->type                                             = ETHERTYPE_IPV4;
 
     /* IPv4 */
+    ether->header.next                                      = (header_t *) ipv4;
     ipv4->version                                           = IPV4_HEADER_VERSION;
     ipv4->ihl                                               = IPV4_HEADER_IHL;
     ipv4->ecn                                               = 0;
     ipv4->dscp                                              = 0;
+    ipv4->id                                                = id;
     ipv4->fragment_offset                                   = 0;
     ipv4->more_fragments                                    = 0;
     ipv4->dont_fragment                                     = 0;
@@ -62,38 +59,68 @@ create_ntp_req(config_ntp_peer_t *server, config_ntp_peer_t *client)
     ipv4->dest                                              = server->ipv4_address;
 
     /* UDPv4 */
-    udpv4->src_port                                         = PORT_NTP;
+    ipv4->header.next                                       = (header_t *) udpv4;
+    udpv4->src_port                                         = 40581;
     udpv4->dest_port                                        = PORT_NTP;
 
     /* NTP */
+    udpv4->header.next                                      = (header_t *) ntp;
     ntp->leap_indicator                                     = NTP_LEAP_INDICATOR_NO_WARNING;
     ntp->version                                            = NTP_VERSION_4;
     ntp->mode                                               = NTP_MODE_CLIENT;
-    ntp->stratum                                            = 2;
+    ntp->stratum                                            = 1;
     ntp->polling_interval                                   = 6;
-    ntp->clock_precision                                    = -22;
-    ntp->root_delay                                         = 0;
-    ntp->root_dispersion                                    = 0;
-    ntp->reference_id[0]                                    = 'G';
-    ntp->reference_id[1]                                    = 'P';
-    ntp->reference_id[2]                                    = 'S';
-    ntp->reference_id[3]                                    = '\0';
-    ntp->reference_timestamp.seconds                        = 123;
-    ntp->reference_timestamp.nanoseconds                    = 456;
-    ntp->origin_timestamp.seconds                           = 123;
-    ntp->origin_timestamp.nanoseconds                       = 456;
-    ntp->receive_timestamp.seconds                          = 123;
-    ntp->receive_timestamp.nanoseconds                      = 456;
-    ntp->transmit_timestamp.seconds                         = 123;
-    ntp->transmit_timestamp.nanoseconds                     = 456;
+    ntp->clock_precision                                    = -23;
+    ntp->root_delay                                         = 0x00000055;
+    ntp->root_dispersion                                    = 0x00000b47;
+    ntp->reference_id[0]                                    = 'L';
+    ntp->reference_id[1]                                    = 'O';
+    ntp->reference_id[2]                                    = 'C';
+    ntp->reference_id[3]                                    = 'L';
+    
+    //ntp->reference_id[0]                                    = 1;
+    //ntp->reference_id[1]                                    = 1;
+    //ntp->reference_id[2]                                    = 1;
+    //ntp->reference_id[3]                                    = 1;
+    ntp->reference_timestamp.seconds                        = 0;
+    ntp->reference_timestamp.nanoseconds                    = 0;
+    ntp->origin_timestamp.seconds                           = 0;
+    ntp->origin_timestamp.nanoseconds                       = 0;
+    ntp->receive_timestamp.seconds                          = 0;
+    ntp->receive_timestamp.nanoseconds                      = 0;
+    //ntp->transmit_timestamp.seconds                         = 0xbc510603;
+    //ntp->transmit_timestamp.nanoseconds                     = 0;
+    
+    ntp->transmit_timestamp.seconds                         = 0xdadc852b;
+    ntp->transmit_timestamp.nanoseconds                     = 0x0000078c;
+    
+    if (ntp_config->adva_tlv) {
+        ntp->header.next                                    = (header_t *) adva_tlv;
+        adva_tlv->type                                      = ADVA_TLV_TYPE_NTP;
+        adva_tlv->len                                       = ADVA_TLV_HEADER_LEN;
+        adva_tlv->opcode                                    = ADVA_TLV_OPCODE_FORWARD_TO_NP;
+        adva_tlv->domain                                    = 2;
+        adva_tlv->flow_id                                   = 3;
+        switch (idx) {
+        case 0:     adva_tlv->tsg_ii.raw                    = 0x9abfe8d2;
+                    adva_tlv->tsg_i.raw                     = 0xc0b3615c;
+                    break;
 
-    adva_tlv->type                                          = ADVA_TLV_TYPE_NTP;
-    adva_tlv->len                                           = ADVA_TLV_HEADER_LEN;
-    adva_tlv->opcode                                        = ADVA_TLV_OPCODE_FORWARD_TO_NP;
-    adva_tlv->domain                                        = 0;
-    adva_tlv->flow_id                                       = 0;
-    adva_tlv->tsg_ii.raw                                    = 0x11223344;
-    adva_tlv->tsg_i.raw                                     = 0xaabbccdd;
+        case 1:     adva_tlv->tsg_ii.raw                    = 0x9abffa2a ;
+                    adva_tlv->tsg_i.raw                     = 0xc0b372b4;
+                    break;
+
+        case 2:     adva_tlv->tsg_ii.raw                    = 0x9ac00b12;
+                    adva_tlv->tsg_i.raw                     = 0xc0b3839c;
+                    break;
+
+        default:    adva_tlv->tsg_ii.raw                    = 0x9ac01d02;
+                    adva_tlv->tsg_i.raw                     = 0xc0b3958c;
+                    break;
+        }
+    }
+    
+    LOG_PACKET(LOG_SIM, LOG_INFO, packet, ("TX"));
 
     return packet;
 }
@@ -205,6 +232,7 @@ main(int argc, char *argv[])
     {
         netif_t                         netif;
         raw_packet_t                    raw_packet;
+        uint32_t                        id = 0;
 
         if (!netif_init(&netif, config.netif[0].name)) {
             return false;
@@ -241,8 +269,7 @@ main(int argc, char *argv[])
 
                         {
                             packet_t                       *packet;
-                            packet = create_ntp_req(&(config.netif[i].vlan[j].ntp.server), &(config.netif[i].vlan[j].ntp.client[k]));
-
+                            packet = create_ntp_req(&(config.netif[i].vlan[j].ntp), id++, &(config.netif[i].vlan[j].ntp.server), &(config.netif[i].vlan[j].ntp.client[k]), k);
                             /* encode */
                             if (packet_encode(&netif, packet, &raw_packet)) {
                                 LOG_PRINTLN(LOG_SIM, LOG_INFO, ("Successfully encoded packet"));

@@ -164,6 +164,18 @@ struct _dns_header_t {
     union {                         
         uint16_t                    raw;
         struct {
+#if defined(__PPC__) || defined(__ARMEB__)
+            uint16_t                qr      : 1;    /**< Query / Response (MSB) */
+            uint16_t                opcode  : 4;    /**< Operation Code */
+            uint16_t                aa      : 1;    /**< Authoritative Answer */
+            uint16_t                tc      : 1;    /**< TrunCation */
+            uint16_t                rd      : 1;    /**< Recursion Desired */
+            uint16_t                ra      : 1;    /**< Recursion Available */
+            uint16_t                z       : 1;    /**< Reserved for future use */
+            uint16_t                ad      : 1;    /**< Authentic Data */
+            uint16_t                cd      : 1;    /**< Checking Disabled */
+            uint16_t                rcode   : 4;    /**< Response Code (LSB) */
+#else
             uint16_t                rcode   : 4;    /**< Response Code (LSB) */
             uint16_t                cd      : 1;    /**< Checking Disabled */
             uint16_t                ad      : 1;    /**< Authentic Data */
@@ -174,6 +186,7 @@ struct _dns_header_t {
             uint16_t                aa      : 1;    /**< Authoritative Answer */
             uint16_t                opcode  : 4;    /**< Operation Code */
             uint16_t                qr      : 1;    /**< Query / Response (MSB) */
+#endif
         };
     } flags;
     dns_query_t                    *qd;
@@ -447,8 +460,13 @@ struct _dns_rr_opt_t {
     union {
         uint16_t                    raw;
         struct {
+#if defined(__PPC__) || defined(__ARMEB__)
+            uint16_t                d0      : 1;    /**< DNSSEC OK */
+            uint16_t                z       : 15;   /**< Reserved */
+#else
             uint16_t                z       : 15;   /**< Reserved */
             uint16_t                d0      : 1;    /**< DNSSEC OK */
+#endif
         };
     } flags;
     uint16_t                        rdlength;

@@ -14,7 +14,10 @@ GLOBAL_LDFLAGS              = -lm
 libmypcap.a_SOURCE          = object.c \
                               log.c \
                               log_network.c \
+                              log_dns.c \
                               log_ptp2.c \
+                              log_ntp.c \
+                              log_adva_tlv.c \
                               ptp2_types.c \
                               network_interface.c \
                               bpf.c \

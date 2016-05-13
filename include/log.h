@@ -16,12 +16,12 @@
 #define STRERROR_R_BUFFER_MAX           64
 
                                         /* bit + space + NUL-character */
-#define LOG_BIT8_LEN                    8  + 1 + 1
-#define LOG_BIT16_LEN                   16 + 3 + 1
-#define LOG_BIT32_LEN                   32 + 7 + 1
+#define LOG_BIT8_LEN                    (8  + 1 + 1)
+#define LOG_BIT16_LEN                   (16 + 3 + 1)
+#define LOG_BIT32_LEN                   (32 + 7 + 1)
 
                                         /* days + space + time + NUL-character */
-#define LOG_TIME_LEN                    5 + 1 + 8 + 1
+#define LOG_TIME_LEN                    (  5    + 1     + 8    + 1)
 
 /*** MACROS *****************************************************************/
 
@@ -130,7 +130,7 @@ void        log_bit8                    (const uint8_t      value,  const uint8_
 void        log_bit16                   (const uint16_t     value,  const uint16_t  mask,   uint8_t *str);
 void        log_bit32                   (const uint32_t     value,  const uint32_t  mask,   uint8_t *str);
 
-void        log_time                    (uint32_t                        seconds,           uint8_t *str);
+void        log_time                    (uint32_t seconds, uint8_t *str);
 
 #endif
 

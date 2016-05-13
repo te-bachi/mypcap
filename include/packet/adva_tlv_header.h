@@ -25,8 +25,13 @@ typedef struct _adva_tlv_header_t                           adva_tlv_header_t;
 typedef union _adva_tlv_tsg_t {
     uint32_t            raw;
     struct {
+#if defined(__PPC__) || defined(__ARMEB__)
+        uint32_t        sec     : 4;
+        uint32_t        nanosec : 28;
+#else
         uint32_t        nanosec : 28;
         uint32_t        sec     : 4;
+#endif
     };
 } adva_tlv_tsg_t;
 
@@ -38,8 +43,13 @@ struct _adva_tlv_header_t {
     union {
         uint8_t             opcode_domain;
         struct {
+#if defined(__PPC__) || defined(__ARMEB__)
             uint8_t         domain : 3;
             uint8_t         opcode : 5;
+#else
+            uint8_t         domain : 3;
+            uint8_t         opcode : 5;
+#endif
         };
     };
     uint8_t                 flow_id;

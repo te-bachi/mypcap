@@ -68,6 +68,21 @@ const char *LOG_LEVEL_STRING[] = {
     [LOG_VERBOSE]                       = "[VERBOSE] "
 };
 
+const char *LOG_MONTH[] = {
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec"
+};
+
 void
 log_init(void)
 {

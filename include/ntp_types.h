@@ -15,8 +15,8 @@
 #define NTP_VERSION_4                   4
 
 #define NTP_MODE_RESERVED               0
-#define NTP_MODE_SYMMENTRIC_ACTIVE      1
-#define NTP_MODE_SYMMENTRIC_PASSIVE     2
+#define NTP_MODE_SYMMETRIC_ACTIVE       1
+#define NTP_MODE_SYMMETRIC_PASSIVE      2
 #define NTP_MODE_CLIENT                 3
 #define NTP_MODE_SERVER                 4
 #define NTP_MODE_BROADCAST              5

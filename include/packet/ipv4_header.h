@@ -39,15 +39,25 @@ struct _ipv4_header_t {
     union {
         uint8_t         ver_ihl;
         struct {
+#if defined(__PPC__) || defined(__ARMEB__)
+            uint8_t     version : 4;
+            uint8_t     ihl     : 4;
+#else
             uint8_t     ihl     : 4;
             uint8_t     version : 4;
+#endif
         };
     };
     union {
         uint8_t         tos;
         struct {
+#if defined(__PPC__) || defined(__ARMEB__)
+            uint8_t     dscp : 6;
+            uint8_t     ecn  : 2;
+#else
             uint8_t     ecn  : 2;
             uint8_t     dscp : 6;
+#endif
         };
     };
     uint16_t            len;
@@ -55,10 +65,17 @@ struct _ipv4_header_t {
     union {
         uint16_t        flags_offset;
         struct {
+#if defined(__PPC__) || defined(__ARMEB__)
+            uint16_t    reserved        : 1;
+            uint16_t    dont_fragment   : 1;
+            uint16_t    more_fragments  : 1;
+            uint16_t    fragment_offset : 13;
+#else
             uint16_t    fragment_offset : 13;
             uint16_t    more_fragments  : 1;
             uint16_t    dont_fragment   : 1;
             uint16_t    reserved        : 1;
+#endif
         };
     };
     uint8_t             ttl;
