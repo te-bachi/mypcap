@@ -44,8 +44,8 @@ struct _adva_tlv_header_t {
         uint8_t             opcode_domain;
         struct {
 #if defined(__PPC__) || defined(__ARMEB__)
-            uint8_t         domain : 3;
             uint8_t         opcode : 5;
+            uint8_t         domain : 3;
 #else
             uint8_t         domain : 3;
             uint8_t         opcode : 5;

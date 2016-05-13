@@ -1,5 +1,6 @@
 #include "packet/net_address.h"
 #include <string.h>
+#include <stdio.h>
 
 const uint8_t           MAC_BLOCK_WIDTH         = 2;      /*  8-bit, WIDTH=1: 4-bit */
 const uint8_t           IPV6_BLOCK_WIDTH        = 4;      /* 16-bit, WIDTH=1: 4-bit */
@@ -20,7 +21,7 @@ mac_address_convert_from_string(mac_address_t *mac, const uint8_t *str)
         if (strnlen((const char *) str, STR_MAC_ADDRESS_MAX_LEN) != (STR_MAC_ADDRESS_MAX_LEN - 1)) {
             return false;
         }
-        for (; *str != '\0' && i < MAC_ADDRESS_LEN; str += 3, i++) {
+        for (i = 0; *str != '\0' && i < MAC_ADDRESS_LEN; str += 3, i++) {
             hexstr2num(&(mac->addr[i]), str, MAC_BLOCK_WIDTH);
             if (str[2] != ':' && str[2] != '\0') {
                 return false;
@@ -195,6 +196,12 @@ num2hexstr(uint32_t num, uint8_t *chr, size_t len)
 //    }
 //}
 
+/**
+ * HEX string to number
+ * @param   num         depending on 'maxlen' it casts it to uint8_t, uint16_t or uint32_t
+ * @param   str
+ * @param   maxlen      max. length of the string
+ */
 void
 hexstr2num(void *num, const uint8_t *str, size_t maxlen)
 {
@@ -204,11 +211,11 @@ hexstr2num(void *num, const uint8_t *str, size_t maxlen)
     uint8_t         shift       = 0;
     uint8_t         nibble[2]   = { 0, 0 };
     uint8_t         idx         = 0;
-
+    
     /* set len to maxlen first */
     len = maxlen;
 
-    /* find the NUL-character */
+    /* find the NUL-character. if not found, use maxlen */
     for (idx = 0; idx < maxlen; idx++) {
         if (str[idx] == '\0') {
             len = idx;

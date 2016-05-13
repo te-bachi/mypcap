@@ -30,9 +30,11 @@ struct _ntp_header_t {
     union {
         uint8_t             flags_raw;
         struct {
-            uint8_t         mode            : 3;
-            uint8_t         version         : 3;
+#if defined(__PPC__) || defined(__ARMEB__)
             uint8_t         leap_indicator  : 2;
+            uint8_t         version         : 3;
+            uint8_t         mode            : 3;
+#endif
         };
     };
     /* represents distance from primary source */

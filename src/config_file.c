@@ -1,5 +1,6 @@
 #include "config_file.h"
 #include "log.h"
+#include "log_network.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -645,6 +646,10 @@ config_file_parse_ntp_peer(FILE *file, config_line_t *line, config_ntp_peer_t *p
 
              if (!config_file_convert_to_mac(line, token, &(peer->mac_address))) {
                  return false;
+             }
+             {
+                 LOG_MAC(&(peer->mac_address), mac_str);
+                 LOG_PRINTLN(LOG_CONFIG_FILE, LOG_DEBUG, ("parse config-file: token=%s mac_address=%s.", token, mac_str));
              }
 
          /* ipv4 */
