@@ -233,6 +233,7 @@ netif_add_mac_address(netif_t *netif, const mac_address_t *mac)
         LOG_MAC(mac, mac_str);
         LOG_PRINTLN(LOG_NETWORK_INTERFACE, LOG_INFO, ("add_mac_address:        mac = %s", mac_str));
     }
+    netif->mac = *mac;
     
     return true;
 }
