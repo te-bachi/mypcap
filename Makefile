@@ -1,6 +1,6 @@
 
 LIBRARIES_STATIC            = libmypcap.a
-PROGRAMS                    = sim signaling delay_req pcap arp_reply
+PROGRAMS                    = sim signaling delay_req pcap arp_reply arp_request crc_check
 
 CC                          = gcc
 #GLOBAL_CFLAGS               = -O3 -flto -pthread -pipe -Wall -ggdb -std=gnu99 -fms-extensions -Iinclude -Wmissing-prototypes -Wno-uninitialized -Wstrict-prototypes
@@ -81,6 +81,17 @@ pcap_CFLAGS                 =
 pcap_LDFLAGS                = -lpcap
 pcap_LIBRARIES              = $(LIBRARIES_STATIC)
 pcap_SOURCE                 = main_pcap.c
+
+arp_request_CFLAGS          = 
+arp_request_LDFLAGS         = 
+arp_request_LIBRARIES       = $(LIBRARIES_STATIC)
+arp_request_SOURCE          = main_arp_request.c
+
+crc_check_CFLAGS            = 
+crc_check_LDFLAGS           = 
+crc_check_LIBRARIES	        = $(LIBRARIES_STATIC)
+crc_check_SOURCE            = crc_check.c
+
 
 include autogen.mk
 
