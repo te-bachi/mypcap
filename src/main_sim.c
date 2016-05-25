@@ -8,10 +8,13 @@
 #include "packet/port.h"
 
 #include <stdio.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
+#include <errno.h>
 #include <linux/limits.h>
 
 #include <sys/socket.h>
@@ -33,10 +36,81 @@ const char ntp_adva_tlv_packet[] = {
     0xe8, 0xd2, 0xc0, 0xb3, 0x61, 0x5c
 };
 
-packet_t *create_ntp_req(config_ntp_t *ntp_config, uint32_t id, config_ntp_peer_t *server, config_ntp_peer_t *client, uint32_t idx);
+static inline void  get_ostime(struct timespec *tsp);
+void                wait_unil_seconds_are_zero(void);
+void                wait_unil_next_second(void);
+packet_t           *create_ntp_req(config_ntp_t *ntp_config, struct timespec *tsp, uint32_t id, config_ntp_peer_t *server, config_ntp_peer_t *client, uint32_t idx);
+
+static inline void
+get_ostime(struct timespec *tsp)
+{
+    int     rc;
+
+    rc = clock_gettime(CLOCK_REALTIME, tsp);
+    if (rc < 0) {
+
+        LOG_ERRNO(LOG_SIM, LOG_INFO, errno, ("read system clock failed"));
+        exit(1);
+    }
+}
+
+void
+wait_unil_seconds_are_zero(void)
+{
+    struct timespec tsp;
+//    struct tm       time;
+    uint32_t        sec_now;
+    uint32_t        sec_old = 0;
+
+    while (true) {
+        get_ostime(&tsp);
+
+        sec_now = tsp.tv_sec % 60;
+        if (sec_now != sec_old) {
+            sec_old = sec_now;
+//            gmtime_r((const time_t *) &(tsp.tv_sec), &time);
+//
+//            LOG_PRINTLN(LOG_SIM, LOG_ERROR, ("%02d.%02d.%04d %02d:%02d:%02d",
+//                                             time.tm_mday,
+//                                             time.tm_mon + 1,
+//                                             time.tm_year + 1900,
+//                                             time.tm_hour,
+//                                             time.tm_min,
+//                                             time.tm_sec));
+            if (sec_now == 0) {
+                return;
+            }
+        }
+        usleep(250000);
+    }
+}
+
+void
+wait_unil_next_second(void)
+{
+    struct timespec tsp;
+    uint32_t        sec_now;
+    uint32_t        sec_old;
+
+    get_ostime(&tsp);
+    sec_now = tsp.tv_sec % 60;
+    sec_old = sec_now;
+
+    do {
+
+        if (sec_now != sec_old) {
+            return;
+        }
+        usleep(250000);
+
+        get_ostime(&tsp);
+        sec_now = tsp.tv_sec % 60;
+    } while (true);
+}
+
 
 packet_t *
-create_ntp_req(config_ntp_t *ntp_config, uint32_t id, config_ntp_peer_t *server, config_ntp_peer_t *client, uint32_t idx)
+create_ntp_req(config_ntp_t *ntp_config, struct timespec *tsp, uint32_t id, config_ntp_peer_t *server, config_ntp_peer_t *client, uint32_t idx)
 {
     packet_t                       *packet                  = packet_new();
     ethernet_header_t              *ether                   = ethernet_header_new();
@@ -73,24 +147,49 @@ create_ntp_req(config_ntp_t *ntp_config, uint32_t id, config_ntp_peer_t *server,
     udpv4->dest_port                                        = PORT_NTP;
 
     /* NTP */
+#if 1
     udpv4->header.next                                      = (header_t *) ntp;
     ntp->leap_indicator                                     = NTP_LEAP_INDICATOR_NO_WARNING;
     ntp->version                                            = NTP_VERSION_4;
     ntp->mode                                               = NTP_MODE_CLIENT;
-    ntp->stratum                                            = 1;
+    ntp->stratum                                            = 0;
+    ntp->polling_interval                                   = 0;
+    ntp->clock_precision                                    = 0;
+    ntp->root_delay                                         = 0x0000000;
+    ntp->root_dispersion                                    = 0x00000000;
+
+    ntp->reference_id[0]                                    = 0;
+    ntp->reference_id[1]                                    = 0;
+    ntp->reference_id[2]                                    = 0;
+    ntp->reference_id[3]                                    = 0;
+    ntp->reference_timestamp.seconds                        = 0;
+    ntp->reference_timestamp.nanoseconds                    = 0;
+    ntp->origin_timestamp.seconds                           = 0;
+    ntp->origin_timestamp.nanoseconds                       = 0;
+    ntp->receive_timestamp.seconds                          = 0;
+    ntp->receive_timestamp.nanoseconds                      = 0;
+    ntp->transmit_timestamp.seconds                         = tsp->tv_sec + 2208988800UL;
+    ntp->transmit_timestamp.nanoseconds                     = TVNTOF(tsp->tv_nsec);
+
+#else
+    udpv4->header.next                                      = (header_t *) ntp;
+    ntp->leap_indicator                                     = NTP_LEAP_INDICATOR_NO_WARNING;
+    ntp->version                                            = NTP_VERSION_4;
+    ntp->mode                                               = NTP_MODE_CLIENT;
+    ntp->stratum                                            = 2;
     ntp->polling_interval                                   = 6;
     ntp->clock_precision                                    = -23;
     ntp->root_delay                                         = 0x00000055;
     ntp->root_dispersion                                    = 0x00000b47;
-    ntp->reference_id[0]                                    = 'L';
-    ntp->reference_id[1]                                    = 'O';
-    ntp->reference_id[2]                                    = 'C';
-    ntp->reference_id[3]                                    = 'L';
+//    ntp->reference_id[0]                                    = 'L';
+//    ntp->reference_id[1]                                    = 'O';
+//    ntp->reference_id[2]                                    = 'C';
+//    ntp->reference_id[3]                                    = 'L';
     
-    //ntp->reference_id[0]                                    = 1;
-    //ntp->reference_id[1]                                    = 1;
-    //ntp->reference_id[2]                                    = 1;
-    //ntp->reference_id[3]                                    = 1;
+    ntp->reference_id[0]                                    = 1;
+    ntp->reference_id[1]                                    = 1;
+    ntp->reference_id[2]                                    = 1;
+    ntp->reference_id[3]                                    = 1;
     ntp->reference_timestamp.seconds                        = 0;
     ntp->reference_timestamp.nanoseconds                    = 0;
     ntp->origin_timestamp.seconds                           = 0;
@@ -102,6 +201,7 @@ create_ntp_req(config_ntp_t *ntp_config, uint32_t id, config_ntp_peer_t *server,
     
     ntp->transmit_timestamp.seconds                         = 0xdadc852b;
     ntp->transmit_timestamp.nanoseconds                     = 0x0000078c;
+#endif
     
     if (ntp_config->adva_tlv) {
         ntp->header.next                                    = (header_t *) adva_tlv;
@@ -243,6 +343,7 @@ main(int argc, char *argv[])
         raw_packet_t                    raw_packet;
         packet_t                       *packet;
         uint32_t                        id = 0;
+        struct timespec                 tsp;
 
         if (!netif_init(&netif, config.netif[0].name)) {
             return false;
@@ -293,20 +394,29 @@ main(int argc, char *argv[])
                         printf("        client %s %s\n", mac_str, ipv4_str);
 
                         {
-                            packet = create_ntp_req(&(config.netif[i].vlan[j].ntp), id++, &(config.netif[i].vlan[j].ntp.server), &(config.netif[i].vlan[j].ntp.client[k]), k);
-                            /* encode */
-                            if (packet_encode(&netif, packet, &raw_packet)) {
-                                LOG_PRINTLN(LOG_SIM, LOG_INFO, ("Successfully encoded packet"));
-                            } else {
-                                LOG_PRINTLN(LOG_SIM, LOG_ERROR, ("Error encoding packet"));
+                            LOG_PRINTLN(LOG_SIM, LOG_INFO, ("Wait until seconds are zero..."));
+                            wait_unil_seconds_are_zero();
+
+                            for (int m = 0; m < 10; m++) {
+                                get_ostime(&tsp);
+                                packet = create_ntp_req(&(config.netif[i].vlan[j].ntp), &tsp, id++, &(config.netif[i].vlan[j].ntp.server), &(config.netif[i].vlan[j].ntp.client[k]), k);
+
+                                /* encode */
+                                if (packet_encode(&netif, packet, &raw_packet)) {
+                                    LOG_PRINTLN(LOG_SIM, LOG_INFO, ("Successfully encoded packet"));
+                                } else {
+                                    LOG_PRINTLN(LOG_SIM, LOG_ERROR, ("Error encoding packet"));
+                                }
+
+                                LOG_RAW_PACKET(LOG_SIM, LOG_INFO, &raw_packet, ("TX"));
+
+                                /* send */
+                                netif_frame_send(&netif, &raw_packet);
+
+                                object_release(packet);
+
+                                wait_unil_next_second();
                             }
-
-                            LOG_RAW_PACKET(LOG_SIM, LOG_INFO, &raw_packet, ("TX"));
-
-                            /* send */
-                            netif_frame_send(&netif, &raw_packet);
-
-                            object_release(packet);
 
                         }
                     }
