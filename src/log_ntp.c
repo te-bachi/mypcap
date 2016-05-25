@@ -136,12 +136,10 @@ static const uint32_t year_lengths[2] = {
 };
 */
 
-#define NTP_OFFSET 2208988800ULL
-
 void
 log_ntp_timestamp(const ntp_timestamp_t *ntp_timestamp, uint8_t *str)
 {
-    time_t      now = ntp_timestamp->seconds - 2208988800ULL;
+    time_t      now = ntp_timestamp->seconds - JAN_1970;
     struct tm   time = {
         .tm_mday = 1,
         .tm_mon  = 0,
@@ -219,5 +217,5 @@ log_ntp_timestamp(const ntp_timestamp_t *ntp_timestamp, uint8_t *str)
                                                 /* day         . month     . year          hour    :     minute  :     second */
     //snprintf((char *) str, LOG_NTP_TIMESTAMP_LEN, "%02" PRIu32 ".%02" PRIu32".%04" PRIu32 " %02" PRIu32 ":%02" PRIu32 ":%02" PRIu32, days, month, year, hours, minutes, seconds);
     snprintf((char *) str, LOG_NTP_TIMESTAMP_LEN, "%02d.%02d.%04d %02d:%02d:%02d.%09" PRIu32,
-                                                  time.tm_mday, time.tm_mon + 1, time.tm_year + 1900, time.tm_hour, time.tm_min, time.tm_sec, ntp_timestamp->nanoseconds);
+                                                  time.tm_mday, time.tm_mon + 1, time.tm_year + 1900, time.tm_hour, time.tm_min, time.tm_sec, FTOTVN(ntp_timestamp->nanoseconds));
 }
