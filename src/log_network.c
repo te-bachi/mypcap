@@ -86,6 +86,7 @@ log_packet(const packet_t *packet)
     while (header != NULL) {
         switch (header->klass->type) {
             case HEADER_TYPE_ETHERNET:              log_ethernet_header             ((const ethernet_header_t *)            header);    break;
+            case HEADER_TYPE_ARP:                   log_arp_header                  ((const arp_header_t *)                 header);    break;
             case HEADER_TYPE_IPV4:                  log_ipv4_header                 ((const ipv4_header_t *)                header);    break;
             case HEADER_TYPE_UDPV4:                 log_udpv4_header                ((const udpv4_header_t *)               header);    break;
             case HEADER_TYPE_DNS:                   log_dns_header                  ((const dns_header_t *)                 header);    break;
@@ -121,6 +122,44 @@ log_ethernet_header(const ethernet_header_t *ether_header)
         LOG_PRINTF(LOG_STREAM, "     |-Type                             %-15s (0x%04" PRIx16 ")\n",           log_ether_type(ether_header->vlan.type), ether_header->vlan.type);
     } else {
         LOG_PRINTF(LOG_STREAM, "   |-Type                               %-15s (0x%04" PRIx16 ")\n",           log_ether_type(ether_header->type), ether_header->type);
+    }
+}
+
+void
+log_arp_header(const arp_header_t *arp_header)
+{
+    LOG_PRINTF(LOG_STREAM, "ARP Header\n");
+    
+    LOG_MAC(&(arp_header->sha),  sha_str);
+    LOG_MAC(&(arp_header->tha),  tha_str);
+    
+    LOG_IPV4(&(arp_header->spa), spa_str);
+    LOG_IPV4(&(arp_header->tpa), tpa_str);
+    
+    LOG_PRINTF(LOG_STREAM, "   |-Hardware type (HTYPE)              %-15s (0x%04" PRIx16 ")\n", arp_header->htype == ARP_HTYPE_ETHERNET ? "Ethernet" : "unknow", arp_header->htype);
+    LOG_PRINTF(LOG_STREAM, "   |-Protocol type (PTYPE)              %-15s (0x%04" PRIx16 ")\n", arp_header->ptype == ARP_PTYPE_IPV4     ? "IPv4"     : "unknow", arp_header->ptype);
+    LOG_PRINTF(LOG_STREAM, "   |-Hardware address length (HLEN)     %-15u (0x%02" PRIx8  ")\n", arp_header->hlen, arp_header->hlen);
+    LOG_PRINTF(LOG_STREAM, "   |-Protocol address length (PLEN)     %-15u (0x%02" PRIx8  ")\n", arp_header->plen, arp_header->plen);
+    LOG_PRINTF(LOG_STREAM, "   |-Operation (OPER)                   %-15s (0x%04" PRIx16 ")\n", log_arp_oper(arp_header->oper), arp_header->oper);
+    LOG_PRINTF(LOG_STREAM, "   |-Sender hardware address (SHA)      %-15s\n",                   sha_str);
+    LOG_PRINTF(LOG_STREAM, "   |-Sender protocol address (SPA)      %-15s (0x%08" PRIx32 ")\n", spa_str, arp_header->spa.addr32);
+    LOG_PRINTF(LOG_STREAM, "   |-Target hardware address (THA)      %-15s\n",                   tha_str);
+    LOG_PRINTF(LOG_STREAM, "   |-Target protocol address (TPA)      %-15s (0x%08" PRIx32 ")\n", tpa_str, arp_header->tpa.addr32);
+}
+
+void
+log_icmpv4_header(const icmpv4_header_t *icmpv4_header)
+{
+    LOG_PRINTF(LOG_STREAM, "ICMPv4 Header\n");
+    
+    LOG_PRINTF(LOG_STREAM, "   |-Type                               %-2"   PRId8,  icmpv4_header->type);
+    LOG_PRINTF(LOG_STREAM, "   |-Code                               %-2"   PRIu8,  icmpv4_header->code);
+    LOG_PRINTF(LOG_STREAM, "   |-Checksum                           0x%04" PRIx16, icmpv4_header->checksum);
+    if (icmpv4_header->type == ICMPV4_TYPE_ECHO_REQUEST || icmpv4_header->type == ICMPV4_TYPE_ECHO_REPLY) {
+        LOG_PRINTF(LOG_STREAM, "   |-%s",                                                                        log_icmpv4_type_code(icmpv4_header->type, icmpv4_header->code));
+        LOG_PRINTF(LOG_STREAM, "      |-Identifier                      0x%04" PRIx16 "          (%" PRIu16 ")", icmpv4_header->echo.id, icmpv4_header->echo.id);
+        LOG_PRINTF(LOG_STREAM, "      |-Sequence Number                 0x%04" PRIx16 "          (%" PRIu16 ")", icmpv4_header->echo.seqno, icmpv4_header->echo.seqno);
+        LOG_PRINTF(LOG_STREAM, "      |-Data                            length: %-3u",                           icmpv4_header->echo.len);
     }
 }
 
@@ -255,6 +294,26 @@ log_ether_type(const uint16_t ether_type)
         case ETHERTYPE_ARP:         return "ARP";
         case ETHERTYPE_VLAN:        return "VLAN";
         default:                    return "unknow";
+    }
+}
+
+const char *
+log_arp_oper(const uint16_t oper)
+{
+    switch (oper) {
+        case ARP_OPER_REQUEST:          return "ARP Request";
+        case ARP_OPER_RESPONSE:         return "ARP Response";
+        default:                        return "Unknow";
+    }
+}
+
+const char *
+log_icmpv4_type_code(const uint16_t type, const uint16_t code)
+{
+    switch (type) {
+        case ICMPV4_TYPE_ECHO_REQUEST:  return "ICMPv4 Echo Request";
+        case ICMPV4_TYPE_ECHO_REPLY:    return "ICMPv4 Echo Reply";
+        default:                        return "unknow";
     }
 }
 

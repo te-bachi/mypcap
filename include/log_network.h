@@ -42,6 +42,8 @@
 void        log_raw_packet                  (const raw_packet_t                 *raw_packet);
 void        log_packet                      (const packet_t                     *packet);
 void        log_ethernet_header             (const ethernet_header_t            *ether_header);
+void        log_arp_header                  (const arp_header_t                 *arp_header);
+void        log_icmpv4_header               (const icmpv4_header_t              *icmpv4_header);
 void        log_ipv4_header                 (const ipv4_header_t                *ipv4_header);
 void        log_udpv4_header                (const udpv4_header_t               *udpv4_header);
 
@@ -52,6 +54,9 @@ void        log_ipv6                        (const ipv6_address_t           *ipv
 
 const char *log_header_type                 (const header_type_t header_type);
 const char *log_ether_type                  (const uint16_t ether_type);
+
+const char *log_arp_oper                    (const uint16_t oper);
+const char *log_icmpv4_type_code            (const uint16_t type, const uint16_t code);
 const char *log_ipv4_protocol               (const uint8_t ipv4_protocol);
 const char *log_ipv6_protocol               (const uint8_t ipv6_protocol);
 const char *log_ip_port                     (const uint16_t port);
