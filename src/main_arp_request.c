@@ -190,7 +190,7 @@ main(int argc, char *argv[])
 void
 usage(int argc, char *argv[], const char *msg)
 {
-   fprintf(stderr, "ARP Request SWISSCOM\n");
+   fprintf(stderr, "ARP Request\n");
    fprintf(stderr, "Usage: %s [-f <config-file>]\n", argv[0]);
    
    if (msg == OPT_REQUIRED) {

@@ -44,8 +44,10 @@ struct _icmpv4_header_t {
     };
 };
 
-packet_len_t    icmpv4_packet_encode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, packet_offset_t offset);
-header_t       *icmpv4_packet_decode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, packet_offset_t offset);
+icmpv4_header_t *icmpv4_header_new(void);
+void             icmpv4_header_free(header_t *header);
+packet_len_t     icmpv4_header_encode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, packet_offset_t offset);
+header_t        *icmpv4_header_decode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, packet_offset_t offset);
 
 #endif
 

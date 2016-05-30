@@ -1,8 +1,7 @@
 
 LIBRARIES_STATIC            = libmypcap.a
-PROGRAMS                    = sim signaling delay_req pcap arp_reply arp_request crc_check
+PROGRAMS                    = sim signaling delay_req pcap arp_reply arp_request crc_check icmp_echo
 
-CC                          = gcc
 #GLOBAL_CFLAGS               = -O3 -flto -pthread -pipe -Wall -ggdb -std=gnu99 -fms-extensions -Iinclude -Wmissing-prototypes -Wno-uninitialized -Wstrict-prototypes
 GLOBAL_CFLAGS               = -O0 -pthread -pipe -Wall -ggdb -std=gnu99 -fms-extensions -Iinclude -Wmissing-prototypes -Wno-uninitialized -Wstrict-prototypes
 GLOBAL_LDFLAGS              = -lm
@@ -30,6 +29,7 @@ libmypcap.a_SOURCE          = object.c \
                               packet/ethernet_header.c \
                               packet/arp_header.c \
                               packet/ipv4_header.c \
+                              packet/icmpv4_header.c \
                               packet/udpv4_header.c \
                               packet/dns_header.c \
                               packet/ptp2_header.c \
@@ -91,6 +91,11 @@ crc_check_CFLAGS            =
 crc_check_LDFLAGS           = 
 crc_check_LIBRARIES	        = $(LIBRARIES_STATIC)
 crc_check_SOURCE            = crc_check.c
+
+icmp_echo_CFLAGS            = 
+icmp_echo_LDFLAGS           = 
+icmp_echo_LIBRARIES         = $(LIBRARIES_STATIC)
+icmp_echo_SOURCE            = main_icmp_echo.c
 
 
 include autogen.mk

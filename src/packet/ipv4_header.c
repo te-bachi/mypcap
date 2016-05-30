@@ -77,7 +77,11 @@ ipv4_header_encode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, p
                 log_header_type(packet->tail->klass->type)));
         return 0;
     }
-    ipv4            = (ipv4_header_t *) packet->tail;
+    ipv4                = (ipv4_header_t *) packet->tail;
+    if (ipv4->protocol != IPV4_PROTOCOL_UDP) {
+        packet->tail    = ipv4->header.next;
+    }
+
     /* don't append UDPv4 to tail! */
     
     /* IPv4 */
@@ -87,8 +91,9 @@ ipv4_header_encode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, p
     
     /* decide */
     switch (ipv4->protocol) {
-        case IPV4_PROTOCOL_UDP:     len = udpv4_header_encode(netif, packet, raw_packet, offset + IPV4_HEADER_LEN); break;
-        default:                                                                                                    return 0;
+        case IPV4_PROTOCOL_ICMP:    len = icmpv4_header_encode(netif, packet, raw_packet, offset + IPV4_HEADER_LEN); break;
+        case IPV4_PROTOCOL_UDP:     len = udpv4_header_encode(netif, packet, raw_packet, offset + IPV4_HEADER_LEN);  break;
+        default:                                                                                                     return 0;
     }
     
     if (len == 0) {
@@ -155,6 +160,7 @@ ipv4_header_decode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, p
         
         /* decide */
         switch (ipv4->protocol) {
+            case IPV4_PROTOCOL_ICMP:    ipv4->header.next = icmpv4_header_decode(netif, packet, raw_packet, offset + IPV4_HEADER_LEN);  break;
             case IPV4_PROTOCOL_UDP:     ipv4->header.next = udpv4_header_decode(netif, packet, raw_packet, offset + IPV4_HEADER_LEN);   break;
             default:                    IPV4_FAILURE_EXIT;
         }

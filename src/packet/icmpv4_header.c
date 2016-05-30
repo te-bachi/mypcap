@@ -10,9 +10,6 @@
 #define ICMPV4_FAILURE_EXIT         icmpv4_header_free((header_t *) icmpv4); \
                                     return NULL
 
-
-const static uint16_t           CHECKSUM_ZERO = 0x0000;
-
 static icmpv4_header_t          icmpv4[ICMPV4_STORAGE_INIT_SIZE];
 static uint32_t                 idx[ICMPV4_STORAGE_INIT_SIZE];
 
@@ -66,10 +63,9 @@ icmpv4_header_free(header_t *header)
  * @return uint32_t                 number of bytes written to raw packet
  ***************************************************************************/
 packet_len_t
-icmpv4_packet_encode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, packet_offset_t offset)
+icmpv4_header_encode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, packet_offset_t offset)
 {
     icmpv4_header_t    *icmpv4;
-    packet_len_t        len;
 
     if (packet->tail->klass->type != HEADER_TYPE_ICMPV4) {
         LOG_PRINTLN(LOG_HEADER_ICMPV4, LOG_ERROR, ("%s header encode: next header is not a %s header but a %s header!",
@@ -110,7 +106,7 @@ icmpv4_packet_encode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet,
  * @param  raw_packet               raw packet to be read
  ***************************************************************************/
 header_t *
-icmpv4_packet_decode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, packet_offset_t offset)
+icmpv4_header_decode(netif_t *netif, packet_t *packet, raw_packet_t *raw_packet, packet_offset_t offset)
 {
     icmpv4_header_t  *icmpv4 = icmpv4_header_new();
 
