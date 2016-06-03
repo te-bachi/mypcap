@@ -394,10 +394,10 @@ main(int argc, char *argv[])
                         printf("        client %s %s\n", mac_str, ipv4_str);
 
                         {
-                            LOG_PRINTLN(LOG_SIM, LOG_INFO, ("Wait until seconds are zero..."));
-                            wait_unil_seconds_are_zero();
+//                            LOG_PRINTLN(LOG_SIM, LOG_INFO, ("Wait until seconds are zero..."));
+//                            wait_unil_seconds_are_zero();
 
-                            for (int m = 0; m < 10; m++) {
+                            //for (int m = 0; m < 500; m++) {
                                 get_ostime(&tsp);
                                 packet = create_ntp_req(&(config.netif[i].vlan[j].ntp), &tsp, id++, &(config.netif[i].vlan[j].ntp.server), &(config.netif[i].vlan[j].ntp.client[k]), k);
 
@@ -415,8 +415,9 @@ main(int argc, char *argv[])
 
                                 object_release(packet);
 
-                                wait_unil_next_second();
-                            }
+                                //wait_unil_next_second();
+                            //    config.netif[i].vlan[j].ntp.client[k].ipv4_address.addr32 = htonl(ntohl(config.netif[i].vlan[j].ntp.client[k].ipv4_address.addr32) + 1);
+                            //}
 
                         }
                     }

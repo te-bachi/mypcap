@@ -101,6 +101,15 @@ log_disable(void)
     log_enabled = false;
 }
 
+void
+log_set_all(log_level_t level)
+{
+    int i;
+    for (i = 0; i < LOG_CATEGORY_MAX; i++) {
+        LOG_CATEGORY_LEVEL[i] = level;
+    }
+}
+
 /*** MESSAGES ****************************************************************/
 
 /**

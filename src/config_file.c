@@ -25,7 +25,7 @@ static bool             config_file_convert_to_mac(config_line_t *line, const ch
 static bool             config_file_convert_to_ipv4(config_line_t *line, const char *token, ipv4_address_t *result);
 
 bool
-config_file_parse(char *filename, config_t *config)
+config_file_parse(const char *filename, config_t *config)
 {
     FILE                   *file;
     config_line_t           line_stack;

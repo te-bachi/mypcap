@@ -7,10 +7,21 @@
 #include "network_interface.h"
 
 typedef struct _header_t                header_t;
+typedef enum   _header_layer_t          header_layer_t;
 typedef enum   _header_type_t           header_type_t;
 typedef struct _header_class_t          header_class_t;
 
 #include "packet/header_storage.h"
+
+enum _header_layer_t {
+    HEADER_LAYER_2,
+    HEADER_LAYER_3,
+    HEADER_LAYER_4,
+    HEADER_LAYER_5,
+    HEADER_LAYER_6,
+    HEADER_LAYER_7,
+    HEADER_LAYER_8
+};
 
 enum _header_type_t {
     HEADER_TYPE_ETHERNET,

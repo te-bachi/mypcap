@@ -96,7 +96,7 @@ struct _config_token_t {
     uint32_t        position;
 };
 
-bool config_file_parse(char *filename, config_t *config);
+bool config_file_parse(const char *filename, config_t *config);
 
 #endif
 

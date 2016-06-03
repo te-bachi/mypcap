@@ -32,10 +32,13 @@ struct _packet_t {
     header_t               *tail;
 };
 
-bool            packet_init     (void);
-packet_t *      packet_new      (void);
-bool            packet_encode   (netif_t *netif, packet_t *packet, raw_packet_t *raw_packet);
-packet_t       *packet_decode   (netif_t *netif,                   raw_packet_t *raw_packet);
+bool            packet_init                 (void);
+packet_t *      packet_new                  (void);
+bool            packet_encode               (netif_t *netif, packet_t *packet, raw_packet_t *raw_packet);
+packet_t       *packet_decode               (netif_t *netif,                   raw_packet_t *raw_packet);
+bool            packet_includes             (packet_t *packet, header_type_t type);
+bool            packet_includes_by_layer    (packet_t *packet, header_type_t type, header_layer_t layer);
+header_t       *packet_search_header        (packet_t *packet, header_type_t type);
 
 #endif
 

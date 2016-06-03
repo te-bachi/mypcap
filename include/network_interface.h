@@ -7,6 +7,12 @@
 #include "packet/raw_packet.h"
 #include "packet/net_address.h"
 
+#if __FreeBSD__
+
+#elif __linux__
+#include <linux/filter.h>
+#endif
+
 #define NETIF_NAME_SIZE             16
 
 #define NETIF_FLAG_UP               0x00000000
@@ -86,6 +92,11 @@ bool        netif_list_init         (netif_list_t *list);
 bool        netif_list_add          (netif_list_t *list, netif_t *netif);
 
 bool        netif_init              (netif_t *netif, const char *name);
+#if __FreeBSD__
+bool        netif_init_bpf          (netif_t *netif, const char *name, struct bpf_insn *filter, int filter_len);
+#elif __linux__
+bool        netif_init_bpf          (netif_t *netif, const char *name, struct sock_filter *filter, int filter_len);
+#endif
 bool        netif_add_mac_address   (netif_t *netif, const mac_address_t *mac);
 
 /* allocates structure internally */

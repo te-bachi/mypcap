@@ -28,7 +28,6 @@
 #include <net/if_vlan_var.h>
 #elif __linux__
 #include <netpacket/packet.h>
-#include <linux/filter.h>
 #include <linux/if_link.h>
 #include <linux/if_vlan.h>
 #include <linux/sockios.h>
@@ -38,7 +37,7 @@
 
 
 #define NETIF_SELECT_WAIT_SECS              0
-#define NETIF_SELECT_WAIT_USECS             100
+#define NETIF_SELECT_WAIT_USECS             1000
 
 #define INADDR(x)   ((struct sockaddr_in  *) x)
 #define INADDR6(x)  ((struct sockaddr_in6 *) x)
@@ -57,6 +56,16 @@ static bool netif_clear_receive_buffer(netif_t *netif);
 bool
 netif_init(netif_t *netif, const char *name)
 {
+    return netif_init_bpf(netif, name, NULL, 0);
+}
+
+bool
+#if __FreeBSD__
+netif_init_bpf(netif_t *netif, const char *name, struct bpf_insn *filter)
+#elif __linux__
+netif_init_bpf(netif_t *netif, const char *name, struct sock_filter *filter, int filter_len)
+#endif
+{
     bool                        result = true;
     struct ifaddrs             *ifas;
     struct ifaddrs             *ifa;
@@ -70,6 +79,7 @@ netif_init(netif_t *netif, const char *name)
     struct vlan_ioctl_args      ifv;            /* ioctl call to get VID */
     struct sockaddr_ll          addr;           /* to bind packet socket to interface */
     struct sockaddr_in          dummy_addr;     /* to bind dummy socket to interface */
+    struct sock_fprog           prog;           /* to attach to filter */
 #endif
 
     
@@ -173,6 +183,21 @@ netif_init(netif_t *netif, const char *name)
         LOG_ERRNO(LOG_NETWORK_INTERFACE, LOG_ERROR, errno, ("can't bind packet socket to interface"));
         return false;
     }
+
+
+#if __FreeBSD__
+
+#elif __linux__
+    if (filter != NULL) {
+        prog.filter = filter;
+        prog.len    = filter_len;
+        if (setsockopt(netif->socket, SOL_SOCKET, SO_ATTACH_FILTER, &prog, sizeof(prog)) < 0) {
+            close(netif->socket);
+            LOG_ERRNO(LOG_NETWORK_INTERFACE, LOG_ERROR, errno, ("can't add BPF filter"));
+            return false;
+        }
+    }
+#endif
 
     if (netif->ipv4 != NULL) {
         /* create dummy socket ***/

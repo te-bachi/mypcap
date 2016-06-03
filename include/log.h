@@ -97,6 +97,7 @@ typedef enum {
     LOG_HEADER_PTP2_SIGNALING_TLV,
     LOG_HEADER_NTP,
     LOG_HEADER_ADVA_TLV,
+    LOG_CATEGORY_MAX
 } log_category_t;
 
 typedef enum {
@@ -117,6 +118,7 @@ extern bool             log_enabled;                /**< don't use it directly! 
 void        log_init                    (void);
 void        log_enable                  (void);
 void        log_disable                 (void);
+void        log_set_all                 (log_level_t level);
 
 void        log_print_header            (log_category_t category, log_level_t level);
 void        log_print                   (const char *format, ...)                __attribute__ ((format (printf, 1, 2)));

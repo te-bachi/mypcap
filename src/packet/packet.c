@@ -53,3 +53,56 @@ packet_decode(netif_t *netif, raw_packet_t *raw_packet)
     return packet;
 }
 
+bool
+packet_includes(packet_t *packet, header_type_t type)
+{
+    header_t   *header;
+
+    if (packet != NULL) {
+        header = packet->head;
+        while (header != NULL) {
+            if (header->klass->type == type) {
+                return true;
+            }
+            header = header->next;
+        }
+    }
+    return false;
+}
+
+bool
+packet_includes_by_layer(packet_t *packet, header_type_t type, header_layer_t layer)
+{
+    header_t   *header;
+    uint8_t     idx;
+
+    if (packet != NULL) {
+        header = packet->head;
+        for (idx = HEADER_LAYER_2; header != NULL; idx++) {
+            if (idx == layer && header->klass->type == type) {
+                return true;
+            } else if (idx > layer) {
+                return false;
+            }
+            header = header->next;
+        }
+    }
+    return false;
+}
+
+header_t *
+packet_search_header(packet_t *packet, header_type_t type)
+{
+    header_t   *header;
+
+    if (packet != NULL) {
+        header = packet->head;
+        while (header != NULL) {
+            if (header->klass->type == type) {
+                return header;;
+            }
+            header = header->next;
+        }
+    }
+    return NULL;
+}
