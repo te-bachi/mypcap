@@ -154,7 +154,7 @@ create_ntp_req(config_ntp_t *ntp_config, struct timespec *tsp, uint32_t id, conf
     ntp->mode                                               = NTP_MODE_CLIENT;
     ntp->stratum                                            = 0;
     ntp->polling_interval                                   = 0;
-    ntp->clock_precision                                    = 0;
+    ntp->clock_precision                                    = 0xe9;
     ntp->root_delay                                         = 0x0000000;
     ntp->root_dispersion                                    = 0x00000000;
 

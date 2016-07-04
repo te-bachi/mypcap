@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,9 +30,14 @@
 #define OPT_UNRECOGNISED (void *) 2
 
 typedef struct _thread_context_t {
-    pthread_t   id;
-    config_t   *config;
-    netif_t    *netif;
+    pthread_t           id;
+    config_t           *config;
+    bool                mflag;
+    netif_t            *netif;
+    pthread_mutex_t    *mutex;
+    pthread_cond_t     *cond_limit;
+    pthread_cond_t     *cond_max;
+    uint16_t            port;
 } thread_context_t;
 
 struct sock_filter filter[] = {
@@ -62,10 +68,11 @@ struct sock_filter filter[] = {
 };
 
 static inline void  get_ostime(struct timespec *tsp);
-packet_t           *create_ntp_req(config_ntp_t *ntp_config, uint32_t id, config_ntp_peer_t *server, config_ntp_peer_t *client, uint32_t idx);
+packet_t           *create_ntp_req(config_ntp_t *ntp_config, uint16_t port, uint32_t id, config_ntp_peer_t *server, config_ntp_peer_t *client, uint32_t idx);
 void *              receive_thread(void *param);
 void *              transmit_thread(void *param);
-bool                ntp_tps(const char *config_file);
+void *              process(void *param);
+bool                ntp_tps(const char *config_file, bool mflag);
 void                ctrl_c(int signal);
 void                usage(int argc, char *argv[], const char *msg);
 
@@ -86,7 +93,7 @@ get_ostime(struct timespec *tsp)
 
 
 packet_t *
-create_ntp_req(config_ntp_t *ntp_config, uint32_t id, config_ntp_peer_t *server, config_ntp_peer_t *client, uint32_t idx)
+create_ntp_req(config_ntp_t *ntp_config, uint16_t port, uint32_t id, config_ntp_peer_t *server, config_ntp_peer_t *client, uint32_t idx)
 {
     packet_t                       *packet                  = packet_new();
     ethernet_header_t              *ether                   = ethernet_header_new();
@@ -120,7 +127,7 @@ create_ntp_req(config_ntp_t *ntp_config, uint32_t id, config_ntp_peer_t *server,
 
     /* UDPv4 */
     ipv4->header.next                                       = (header_t *) udpv4;
-    udpv4->src_port                                         = 40581;
+    udpv4->src_port                                         = port;
     udpv4->dest_port                                        = PORT_NTP;
 
     /* NTP */
@@ -161,10 +168,16 @@ receive_thread(void *param)
     netif_t            *netif   = context->netif;
     raw_packet_t        raw_packet;
     packet_t           *packet;
+    struct timespec     tsp;
+    time_t              seconds;
+    uint32_t            count;
+
+    seconds = 0;
+    count   = 0;
 
     while (running) {
         if (netif_frame_receive(netif, &raw_packet)) {
-
+            count++;
             /* decode */
             packet = packet_decode(netif, &raw_packet);
             if (packet != NULL) {
@@ -180,7 +193,29 @@ receive_thread(void *param)
                 LOG_PRINTLN(LOG_SIM, LOG_ERROR, ("Error decoding packet"));
             }
         }
+//        } else {
+//            pthread_mutex_lock(context->mutex);
+//            pthread_cond_signal(context->cond_limit);
+//            pthread_mutex_unlock(context->mutex);
+//        }
+
+        get_ostime(&tsp);
+
+        if (tsp.tv_sec > seconds) {
+            pthread_mutex_lock(context->mutex);
+            printf("RX: %" PRIu32 "\n", count);
+//            pthread_cond_signal(context->cond_limit);
+            pthread_cond_signal(context->cond_max);
+            pthread_mutex_unlock(context->mutex);
+
+            seconds = tsp.tv_sec;
+            count   = 0;
+        }
     }
+    pthread_mutex_lock(context->mutex);
+//    pthread_cond_signal(context->cond_limit);
+    pthread_cond_signal(context->cond_max);
+    pthread_mutex_unlock(context->mutex);
 
     return NULL;
 }
@@ -197,6 +232,8 @@ transmit_thread(void *param)
     ipv4_header_t      *ipv4;
     ntp_header_t       *ntp;
     struct timespec     tsp;
+    time_t              seconds;
+    uint32_t            count;
 
     raw_packet_init(&raw_packet);
 
@@ -228,28 +265,170 @@ transmit_thread(void *param)
 
                     {
                         /* swap client/server */
-                        packet  = create_ntp_req(&(config->netif[i].vlan[j].ntp), id++, &(config->netif[i].vlan[j].ntp.client[k]), &(config->netif[i].vlan[j].ntp.server), k);
+                        packet  = create_ntp_req(&(config->netif[i].vlan[j].ntp), context->port, id++, &(config->netif[i].vlan[j].ntp.client[k]), &(config->netif[i].vlan[j].ntp.server), k);
                         ipv4    = (ipv4_header_t *) packet_search_header(packet, HEADER_TYPE_IPV4);
                         ntp     = (ntp_header_t *) packet_search_header(packet, HEADER_TYPE_NTP);
-
+                        seconds = 0;
+                        count   = 0;
 
                         while (running) {
-                            /* encode */
-                            if (!packet_encode(netif, packet, &raw_packet)) {
-                                LOG_PRINTLN(LOG_SIM, LOG_ERROR, ("Error encoding packet"));
-                                return NULL;
+                            if (count < 7000) {
+                                /* encode */
+                                if (!packet_encode(netif, packet, &raw_packet)) {
+                                    LOG_PRINTLN(LOG_SIM, LOG_ERROR, ("Error encoding packet"));
+                                    return NULL;
+                                }
+
+                                /* send */
+                                netif_frame_send(netif, &raw_packet);
+                                count++;
+                                ipv4->id = k;
+//                                if (count % 2 == 0) {
+//                                    pthread_mutex_lock(context->mutex);
+//                                    pthread_cond_wait(context->cond_limit, context->mutex);
+//                                    pthread_mutex_unlock(context->mutex);
+//                                }
+                            } else {
+                                pthread_mutex_lock(context->mutex);
+                                pthread_cond_wait(context->cond_max, context->mutex);
+                                pthread_mutex_unlock(context->mutex);
                             }
-
-                            /* send */
-                            netif_frame_send(netif, &raw_packet);
-
-                            ipv4->id = k;
 
                             get_ostime(&tsp);
                             ntp->transmit_timestamp.seconds     = tsp.tv_sec + 2208988800UL;
                             ntp->transmit_timestamp.nanoseconds = TVNTOF(tsp.tv_nsec);
+                            if (context->mflag) {
+                                if (ntohl(ipv4->src.addr32) > (ntohl(config->netif[i].vlan[j].ntp.server.ipv4_address.addr32) + 1000)) {
+                                    ipv4->src = config->netif[i].vlan[j].ntp.server.ipv4_address;
+                                } else {
+                                    ipv4->src.addr32 = htonl(ntohl(ipv4->src.addr32) + 1);
+                                }
+                            }
+
+                            if (tsp.tv_sec > seconds) {
+                                pthread_mutex_lock(context->mutex);
+                                printf("TX: %" PRIu32 "\n", count);
+                                pthread_mutex_unlock(context->mutex);
+
+                                seconds = tsp.tv_sec;
+                                count   = 0;
+                            }
+                            usleep(40);
                         }
                         object_release(packet);
+                    }
+                }
+            }
+        }
+    }
+
+    return NULL;
+}
+
+void *
+process(void *param)
+{
+    thread_context_t   *context = (thread_context_t *) param;
+    config_t           *config  = context->config;
+    netif_t            *netif   = context->netif;
+    raw_packet_t        raw_packet;
+    packet_t           *tx_packet;
+    packet_t           *rx_packet;
+    uint32_t            id = 0;
+    ipv4_header_t      *ipv4;
+    ntp_header_t       *ntp;
+    struct timespec     tsp;
+    time_t              seconds;
+    uint32_t            rx_count;
+    uint32_t            tx_count;
+
+    raw_packet_init(&raw_packet);
+
+    /* netif */
+    for (int i = 0; i < config->netif_size; i++) {
+        LOG_PRINTLN(LOG_SIM, LOG_INFO, ("netif '%s'", config->netif[i].name));
+
+        /* vlan */
+        for (int j = 0; j < config->netif[i].vlan_size; j++) {
+            LOG_PRINTLN(LOG_SIM, LOG_INFO, ("    vlan '%d'", config->netif[i].vlan[j].vid));
+            if (config->netif[i].vlan[j].gateway_configured) {
+                LOG_MAC(&(config->netif[i].vlan[j].gateway.mac_address), mac_str);
+                LOG_IPV4(&(config->netif[i].vlan[j].gateway.ipv4_address), ipv4_str);
+                LOG_PRINTLN(LOG_SIM, LOG_INFO, ("        gateway %s %s", mac_str, ipv4_str));
+            }
+
+            /* ntp */
+            if (config->netif[i].vlan[j].ntp_configured) {
+                {
+                    LOG_MAC(&(config->netif[i].vlan[j].ntp.server.mac_address), mac_str);
+                    LOG_IPV4(&(config->netif[i].vlan[j].ntp.server.ipv4_address), ipv4_str);
+                    LOG_PRINTLN(LOG_SIM, LOG_INFO, ("        server %s %s", mac_str, ipv4_str));
+                }
+                /* ntp client */
+                for (int k = 0; k < config->netif[i].vlan[j].ntp.client_size; k++) {
+                    LOG_MAC(&(config->netif[i].vlan[j].ntp.client[k].mac_address), mac_str);
+                    LOG_IPV4(&(config->netif[i].vlan[j].ntp.client[k].ipv4_address), ipv4_str);
+                    LOG_PRINTLN(LOG_SIM, LOG_INFO, ("        client %s %s", mac_str, ipv4_str));
+
+                    {
+                        /* swap client/server */
+                        tx_packet   = create_ntp_req(&(config->netif[i].vlan[j].ntp), context->port, id++, &(config->netif[i].vlan[j].ntp.client[k]), &(config->netif[i].vlan[j].ntp.server), k);
+                        ipv4        = (ipv4_header_t *) packet_search_header(tx_packet, HEADER_TYPE_IPV4);
+                        ntp         = (ntp_header_t *) packet_search_header(tx_packet, HEADER_TYPE_NTP);
+                        seconds     = 0;
+                        rx_count    = 0;
+                        tx_count    = 0;
+
+                        while (running) {
+                            if (tx_count < 6000) {
+                                /* encode */
+                                if (!packet_encode(netif, tx_packet, &raw_packet)) {
+                                    LOG_PRINTLN(LOG_SIM, LOG_ERROR, ("Error encoding packet"));
+                                    return NULL;
+                                }
+
+                                /* send */
+                                netif_frame_send(netif, &raw_packet);
+                                tx_count++;
+                                ipv4->id = k;
+                            }
+
+                            if (netif_frame_ready(netif)) {
+                                if (netif_frame_receive(netif, &raw_packet)) {
+                                    rx_count++;
+                                    /* decode */
+                                    rx_packet = packet_decode(netif, &raw_packet);
+                                    if (rx_packet != NULL) {
+                                        if (packet_includes_by_layer(rx_packet, HEADER_TYPE_ETHERNET,  HEADER_LAYER_2) &&
+                                            packet_includes_by_layer(rx_packet, HEADER_TYPE_IPV4,      HEADER_LAYER_3) &&
+                                            packet_includes_by_layer(rx_packet, HEADER_TYPE_UDPV4,     HEADER_LAYER_4) &&
+                                            packet_includes_by_layer(rx_packet, HEADER_TYPE_NTP,       HEADER_LAYER_5)) {
+
+                                            LOG_PRINTLN(LOG_SIM, LOG_INFO, ("Successfully decoded packet"));
+                                            object_release(rx_packet);
+                                        }
+                                    } else {
+                                        LOG_PRINTLN(LOG_SIM, LOG_ERROR, ("Error decoding packet"));
+                                    }
+                                }
+                            }
+
+                            get_ostime(&tsp);
+                            ntp->transmit_timestamp.seconds     = tsp.tv_sec + 2208988800UL;
+                            ntp->transmit_timestamp.nanoseconds = TVNTOF(tsp.tv_nsec);
+
+                            if (tsp.tv_sec > seconds) {
+                                printf("RX: %" PRIu32 "\n", rx_count);
+                                printf("TX: %" PRIu32 "\n", tx_count);
+
+                                seconds     = tsp.tv_sec;
+                                rx_count    = 0;
+                                tx_count    = 0;
+                            }
+
+                            usleep(100);
+                        }
+                        object_release(tx_packet);
                     }
                 }
             }
@@ -266,19 +445,35 @@ ctrl_c(int signal)
 }
 
 bool
-ntp_tps(const char *config_file)
+ntp_tps(const char *config_file, bool mflag)
 {
     config_t            config;
     netif_t             netif;
+    pthread_mutex_t     mutex;
+    pthread_cond_t      cond_limit;
+    pthread_cond_t      cond_max;
+    int                 port = 40123;
+    bool                single_thread = false;
+
     thread_context_t    receive = {
-            .id     = 0,
-            .config = &config,
-            .netif  = &netif
+            .id         = 0,
+            .config     = &config,
+            .mflag      = mflag,
+            .netif      = &netif,
+            .mutex      = &mutex,
+            .cond_limit = &cond_limit,
+            .cond_max   = &cond_max,
+            .port       = port
     };
     thread_context_t    transmit = {
-            .id     = 0,
-            .config = &config,
-            .netif  = &netif
+            .id         = 0,
+            .config     = &config,
+            .mflag      = mflag,
+            .netif      = &netif,
+            .mutex      = &mutex,
+            .cond_limit = &cond_limit,
+            .cond_max   = &cond_max,
+            .port       = port
     };
 
     log_init();
@@ -290,19 +485,27 @@ ntp_tps(const char *config_file)
         exit(EXIT_FAILURE);
     }
 
-    if (!netif_init_bpf(&netif, config.netif[0].name, filter, sizeof(filter) / sizeof(struct sock_filter))) {
+    if (!netif_init_bpf(&netif, config.netif[0].name, port, filter, sizeof(filter) / sizeof(struct sock_filter))) {
         return false;
     }
 
     signal(SIGINT, ctrl_c);
 
-    pthread_create(&receive.id, NULL, receive_thread, &receive);
-    pthread_create(&transmit.id, NULL, transmit_thread, &transmit);
+    if (single_thread) {
+        process(&receive);
+    } else {
+        pthread_mutex_init(&mutex, NULL);
+        pthread_cond_init(&cond_limit, NULL);
+        pthread_cond_init(&cond_max, NULL);
 
-    pthread_join(receive.id, NULL);
-    pthread_join(transmit.id, NULL);
+        pthread_create(&receive.id, NULL, receive_thread, &receive);
+        pthread_create(&transmit.id, NULL, transmit_thread, &transmit);
 
-    pthread_exit(NULL);
+        pthread_join(receive.id, NULL);
+        pthread_join(transmit.id, NULL);
+
+        pthread_exit(NULL);
+    }
 
     return true;
 }
@@ -312,6 +515,7 @@ main(int argc, char *argv[])
 {
     char        config_file[NAME_MAX+1];
     bool        fflag = false;  /* option: config-file */
+    bool        mflag = false;  /* option: multiple IPv4-addresses */
 
     int         opt;            /* argument for getopt() as a single integer */
 
@@ -325,13 +529,18 @@ main(int argc, char *argv[])
     /* first character ':' of getopt()'s optstring sets opterr=0 and
        returns ':' to indicate a missing option argument
        or '?' to indicate a unrecognised option */
-    while ((opt = getopt(argc, argv, ":l:df:")) != -1) {
+    while ((opt = getopt(argc, argv, ":f:m")) != -1) {
         switch (opt) {
 
             /* option: config-file */
             case 'f':
                 strcpy(config_file, optarg);
                 fflag = true;
+                break;
+
+            /* option: multiple IPv4-addresses */
+            case 'm':
+                mflag = true;
                 break;
 
             /* missing option argument */
@@ -354,7 +563,7 @@ main(int argc, char *argv[])
         strcpy(config_file, CONFIG_FILE_NAME);
     }
 
-    ntp_tps(config_file);
+    ntp_tps(config_file, mflag);
 
     fprintf(stderr, "Exit!\n");
 
@@ -365,7 +574,7 @@ void
 usage(int argc, char *argv[], const char *msg)
 {
    fprintf(stderr, "NTP TPS (transaction per second)\n");
-   fprintf(stderr, "Usage: %s -f <config-file>]\n", argv[0]);
+   fprintf(stderr, "Usage: %s -f <config-file>] [-m]\n", argv[0]);
 
    if (msg == OPT_REQUIRED) {
        fprintf(stderr, "\nOption -%c requires an operand\n", optopt);

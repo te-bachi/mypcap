@@ -208,7 +208,7 @@ main(int argc, char *argv[])
         packet_t                       *packet;
         uint32_t                        id = 0;
 
-        if (!netif_init_bpf(&netif, config.netif[0].name, filter, sizeof(filter) / sizeof(struct sock_filter))) {
+        if (!netif_init_bpf(&netif, config.netif[0].name, 40123, filter, sizeof(filter) / sizeof(struct sock_filter))) {
             return false;
         }
 

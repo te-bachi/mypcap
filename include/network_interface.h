@@ -88,29 +88,38 @@ struct _ipv6_alias_t {
     ipv6_alias_t           *next;   /**< linked list */
 };
 
-bool        netif_list_init         (netif_list_t *list);
-bool        netif_list_add          (netif_list_t *list, netif_t *netif);
+bool                netif_list_init         (netif_list_t *list);
+bool                netif_list_add          (netif_list_t *list, netif_t *netif);
 
-bool        netif_init              (netif_t *netif, const char *name);
+bool                netif_init              (netif_t *netif, const char *name);
+bool                netif_init_port         (netif_t *netif, const char *name, uint16_t port);
 #if __FreeBSD__
-bool        netif_init_bpf          (netif_t *netif, const char *name, struct bpf_insn *filter, int filter_len);
+bool                netif_init_bpf          (netif_t *netif, const char *name, uint16_t port, struct bpf_insn *filter, int filter_len);
 #elif __linux__
-bool        netif_init_bpf          (netif_t *netif, const char *name, struct sock_filter *filter, int filter_len);
+bool                netif_init_bpf          (netif_t *netif, const char *name, uint16_t port, struct sock_filter *filter, int filter_len);
 #endif
-bool        netif_add_mac_address   (netif_t *netif, const mac_address_t *mac);
+bool                netif_add_mac_address   (netif_t *netif, const mac_address_t *mac);
 
 /* allocates structure internally */
-bool        netif_add_vid           (netif_t *netif, const uint16_t vid);
-bool        netif_add_ipv4_address  (netif_t *netif, const ipv4_address_t *address, const ipv4_address_t *netmask, const ipv4_address_t *broadcast, const ipv4_address_t *gateway);
-bool        netif_add_ipv6_address  (netif_t *netif, const ipv6_address_t *address, const ipv6_address_t *netmask, const ipv6_state_t state);
+bool                netif_add_vid           (netif_t *netif, const uint16_t vid);
+bool                netif_add_ipv4_address  (netif_t *netif, const ipv4_address_t *address, const ipv4_address_t *netmask, const ipv4_address_t *broadcast, const ipv4_address_t *gateway);
+bool                netif_add_ipv6_address  (netif_t *netif, const ipv6_address_t *address, const ipv6_address_t *netmask, const ipv6_state_t state);
 
 /* pass reference to structure. structure allocation must be externally made */
-bool        netif_add_vlan          (netif_t *netif, vlan_t *vlan);
-bool        netif_add_ipv4_alias    (netif_t *netif, ipv4_alias_t *ipv4);
-bool        netif_add_ipv6_alias    (netif_t *netif, ipv6_alias_t *ipv6);
+bool                netif_add_vlan          (netif_t *netif, vlan_t *vlan);
+bool                netif_add_ipv4_alias    (netif_t *netif, ipv4_alias_t *ipv4);
+bool                netif_add_ipv6_alias    (netif_t *netif, ipv6_alias_t *ipv6);
 
-bool        netif_frame_receive     (netif_t *netif, raw_packet_t *raw_packet);
-void        netif_frame_send        (netif_t *netif, raw_packet_t *raw_packet);
+static inline bool  netif_frame_ready       (netif_t *netif);
+bool                netif_frame_select      (netif_t *netif, uint32_t timeout);
+bool                netif_frame_receive     (netif_t *netif, raw_packet_t *raw_packet);
+void                netif_frame_send        (netif_t *netif, raw_packet_t *raw_packet);
+
+
+static inline bool
+netif_frame_ready(netif_t *netif) {
+    return netif_frame_select(netif, 0);
+}
 
 #endif
 

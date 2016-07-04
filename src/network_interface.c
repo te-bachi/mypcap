@@ -56,14 +56,20 @@ static bool netif_clear_receive_buffer(netif_t *netif);
 bool
 netif_init(netif_t *netif, const char *name)
 {
-    return netif_init_bpf(netif, name, NULL, 0);
+    return netif_init_bpf(netif, name, 0, NULL, 0);
+}
+
+bool
+netif_init_port(netif_t *netif, const char *name, uint16_t port)
+{
+    return netif_init_bpf(netif, name, port, NULL, 0);
 }
 
 bool
 #if __FreeBSD__
-netif_init_bpf(netif_t *netif, const char *name, struct bpf_insn *filter)
+netif_init_bpf(netif_t *netif, const char *name, uint16_t port, struct bpf_insn *filter)
 #elif __linux__
-netif_init_bpf(netif_t *netif, const char *name, struct sock_filter *filter, int filter_len)
+netif_init_bpf(netif_t *netif, const char *name, uint16_t port, struct sock_filter *filter, int filter_len)
 #endif
 {
     bool                        result = true;
@@ -199,7 +205,7 @@ netif_init_bpf(netif_t *netif, const char *name, struct sock_filter *filter, int
     }
 #endif
 
-    if (netif->ipv4 != NULL) {
+    if (netif->ipv4 != NULL && port > 0) {
         /* create dummy socket ***/
         if ((netif->dummy_socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
             close(netif->socket);
@@ -211,7 +217,7 @@ netif_init_bpf(netif_t *netif, const char *name, struct sock_filter *filter, int
         bzero(&dummy_addr, sizeof(dummy_addr));
         dummy_addr.sin_family      = AF_INET;
         dummy_addr.sin_addr.s_addr = netif->ipv4->address.addr32;
-        dummy_addr.sin_port        = htons(PORT_PTP2_GENERAL);
+        dummy_addr.sin_port        = htons(port);
 
         if (bind(netif->dummy_socket, (struct sockaddr *) &dummy_addr, sizeof(dummy_addr)) < 0) {
             close(netif->socket);
@@ -432,11 +438,28 @@ netif_clear_receive_buffer(netif_t *netif)
 bool
 netif_frame_receive(netif_t *netif, raw_packet_t *raw_packet)
 {
+    if (netif_frame_select(netif, NETIF_SELECT_WAIT_USECS)) {
+        if ((raw_packet->len = recv(netif->socket, raw_packet->data, ETH_MAX_FRAME_SIZE, 0 /* no flags */)) < 0) {
+            LOG_PRINTLN(LOG_NETWORK_INTERFACE, LOG_ERROR, ("can't receive packet: %s", strerror(errno)));
+            return false;
+        }
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * @brief
+ */
+bool
+netif_frame_select(netif_t *netif, uint32_t timeout)
+{
     fd_set              readfds;  /* list of monitored file descriptors */
     int                 numfds;   /* number of ready file descriptors */
     struct timeval      tv = {              /* time structure used in select() */
-        .tv_sec  = NETIF_SELECT_WAIT_SECS,
-        .tv_usec = NETIF_SELECT_WAIT_USECS
+        .tv_sec  = 0,
+        .tv_usec = timeout
     };
 
     FD_ZERO(&readfds);
@@ -458,10 +481,6 @@ netif_frame_receive(netif_t *netif, raw_packet_t *raw_packet)
 
         /* fd ready */
         default:
-            if ((raw_packet->len = recv(netif->socket, raw_packet->data, ETH_MAX_FRAME_SIZE, 0 /* no flags */)) < 0) {
-                LOG_PRINTLN(LOG_NETWORK_INTERFACE, LOG_ERROR, ("can't receive packet: %s", strerror(errno)));
-                return false;
-            }
             return true;
     }
 
