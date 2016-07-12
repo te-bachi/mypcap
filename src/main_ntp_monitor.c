@@ -25,8 +25,6 @@
 #define OPT_REQUIRED     (void *) 1
 #define OPT_UNRECOGNISED (void *) 2
 
-void usage(int argc, char *argv[], const char *msg);
-
 struct sock_filter filter[] = {
     /* Make sure this is an IP packet... */
     BPF_STMT(BPF_LD + BPF_H + BPF_ABS, 12),
@@ -54,6 +52,10 @@ struct sock_filter filter[] = {
     BPF_STMT(BPF_RET+BPF_K, 0),
 };
 
+
+
+void                usage(int argc, char *argv[], const char *msg);
+bool                parse_uint16(const char *argument, const char *str, uint16_t *result);
 static inline void  get_ostime(struct timespec *tsp);
 packet_t           *create_ntp_req(config_ntp_t *ntp_config, uint32_t id, config_ntp_peer_t *server, config_ntp_peer_t *client, uint32_t idx);
 
@@ -305,4 +307,26 @@ usage(int argc, char *argv[], const char *msg)
    }
 
    exit(EXIT_FAILURE);
+}
+
+bool
+parse_uint16(const char *argument, const char *str, uint16_t *result)
+{
+    char *end;
+
+    const long value = strtol(str, &end, 10 /* = decimal conversion */ );
+
+    if (end == str) {
+        printf("argument %s with value %s is not a decimal number\n", argument, str);
+        return false;
+    } else if (*end != '\0') {
+        printf("argument %s with value %s has extra characters\n", argument, str);
+        return false;
+    } else if (value > UINT16_MAX) {
+        printf("argument %s with value %s is out of range\n", argument, str);
+        return false;
+    }
+
+    *result = value;
+    return true;
 }

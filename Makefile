@@ -1,6 +1,6 @@
 
 LIBRARIES_STATIC            = libmypcap.a
-PROGRAMS                    = sim signaling delay_req pcap arp_reply arp_request crc_check icmp_echo ntp_monitor ntp_tps
+PROGRAMS                    = sim signaling delay_req pcap arp_reply arp_request crc_check icmp_echo ntp_monitor ntp_tps ntp_ts
 
 #GLOBAL_CFLAGS               = -O3 -flto -pthread -pipe -Wall -ggdb -std=gnu99 -fms-extensions -Iinclude -Wmissing-prototypes -Wno-uninitialized -Wstrict-prototypes
 GLOBAL_CFLAGS               = -O0 -pthread -pipe -Wall -ggdb -std=gnu99 -fms-extensions -Iinclude -Wmissing-prototypes -Wno-uninitialized -Wstrict-prototypes
@@ -106,6 +106,11 @@ ntp_tps_CFLAGS              =
 ntp_tps_LDFLAGS             = 
 ntp_tps_LIBRARIES           = $(LIBRARIES_STATIC) -pthread
 ntp_tps_SOURCE              = main_ntp_tps.c
+
+ntp_ts_CFLAGS               = 
+ntp_ts_LDFLAGS              = 
+ntp_ts_LIBRARIES            = $(LIBRARIES_STATIC)
+ntp_ts_SOURCE               = main_ntp_ts.c
 
 include autogen.mk
 
