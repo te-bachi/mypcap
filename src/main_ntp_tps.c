@@ -37,7 +37,7 @@ typedef struct _thread_context_t {
     uint16_t            ip_src_max;
     uint16_t            packet_gap;
     uint16_t            max_packets_sec;
-    uint16_t            total_packets;
+    uint32_t            total_packets;
     netif_t            *netif;
     //pthread_mutex_t    *mutex;
     //pthread_cond_t     *cond_limit;
@@ -46,6 +46,7 @@ typedef struct _thread_context_t {
     sem_t              *sem_max;
     sem_t              *sem_print;
     uint16_t            port;
+    uint64_t            print_count;
 } thread_context_t;
 
 struct sock_filter filter[] = {
@@ -80,10 +81,11 @@ packet_t           *create_ntp_req(config_ntp_t *ntp_config, uint16_t port, uint
 void *              receive_thread(void *param);
 void *              transmit_thread(void *param);
 void *              process(void *param);
-bool                ntp_tps(const char *config_file, uint16_t port, uint16_t ip_src_max, uint16_t packet_gap, uint16_t max_packets_sec, uint16_t total_packets);
+bool                ntp_tps(const char *config_file, uint16_t port, uint16_t ip_src_max, uint16_t packet_gap, uint16_t max_packets_sec, uint32_t total_packets);
 void                ctrl_c(int signal);
 void                usage(int argc, char *argv[], const char *msg);
 bool                parse_uint16(const char *argument, const char *str, uint16_t *result, void (*callback)(int));
+bool                parse_uint32(const char *argument, const char *str, uint32_t *result, void (*callback)(int));
 
 static volatile bool running = true;
 
@@ -215,7 +217,8 @@ receive_thread(void *param)
             pthread_barrier_wait(context->barrier);
             sem_wait(context->sem_print);
 //            pthread_mutex_lock(context->mutex);
-            printf("RX: %" PRIu32 "\n", count);
+            printf("%-12" PRIu64 " RX: %" PRIu32 "\n", context->print_count, count);
+            context->print_count++;
 //            pthread_cond_signal(context->cond_limit);
 //            pthread_cond_signal(context->cond_max);
 //            pthread_mutex_unlock(context->mutex);
@@ -225,7 +228,7 @@ receive_thread(void *param)
         }
     }
     sem_post(context->sem_max);
-    printf("RX: %" PRIu32 "\n", count);
+    printf("%-12" PRIu64 " RX: %" PRIu32 "\n", context->print_count, count);
 //    pthread_mutex_lock(context->mutex);
 //    pthread_cond_signal(context->cond_limit);
 //    pthread_cond_signal(context->cond_max);
@@ -325,7 +328,7 @@ transmit_thread(void *param)
                             if (tsp.tv_sec > seconds) {
                                 pthread_barrier_wait(context->barrier);
 //                                pthread_mutex_lock(context->mutex);
-                                printf("TX: %" PRIu32 "\n", count);
+                                printf("%-12" PRIu64 " TX: %" PRIu32 "\n", context->print_count, count);
                                 sem_post(context->sem_print);
 //                                pthread_mutex_unlock(context->mutex);
 
@@ -335,7 +338,7 @@ transmit_thread(void *param)
                                 usleep(context->packet_gap);
                             }
                         }
-                        printf("TX: %" PRIu32 "\n", count);
+                        printf("%-12" PRIu64 " TX: %" PRIu32 "\n", context->print_count, count);
                         running = false;
                         pthread_barrier_destroy(context->barrier);
                         sem_post(context->sem_print);
@@ -357,7 +360,7 @@ ctrl_c(int signal)
 }
 
 bool
-ntp_tps(const char *config_file, uint16_t port, uint16_t ip_src_max, uint16_t packet_gap, uint16_t max_packets_sec, uint16_t total_packets)
+ntp_tps(const char *config_file, uint16_t port, uint16_t ip_src_max, uint16_t packet_gap, uint16_t max_packets_sec, uint32_t total_packets)
 {
     config_t            config;
     netif_t             netif;
@@ -385,7 +388,8 @@ ntp_tps(const char *config_file, uint16_t port, uint16_t ip_src_max, uint16_t pa
             .barrier            = &barrier,
             .sem_max            = &sem_max,
             .sem_print          = &sem_print,
-            .port               = port
+            .port               = port,
+            .print_count        = 0
     };
 
     printf("  Config file                 = %s\n", config_file);
@@ -442,7 +446,7 @@ main(int argc, char *argv[])
     uint16_t    ip_src_max      = 0;
     uint16_t    packet_gap      = 60;
     uint16_t    max_packets_sec = 7000;
-    uint16_t    total_packets   = 0;
+    uint32_t    total_packets   = 0;
 
     int         opt;            /* argument for getopt() as a single integer */
 
@@ -492,7 +496,7 @@ main(int argc, char *argv[])
 
             /* option: exit after sending a certain amount packets */
             case 't':
-                parse_uint16("t", optarg, &total_packets, exit);
+                parse_uint32("t", optarg, &total_packets, exit);
                 break;
 
             /* missing option argument */
@@ -566,6 +570,34 @@ parse_uint16(const char *argument, const char *str, uint16_t *result, void (*cal
     return true;
 
 parse_uint16_failed:
+    if (callback != NULL) {
+        callback(-1);
+    }
+    return false;
+}
+
+bool
+parse_uint32(const char *argument, const char *str, uint32_t *result, void (*callback)(int))
+{
+    char *end;
+
+    const long value = strtol(str, &end, 10 /* = decimal conversion */ );
+
+    if (end == str) {
+        printf("argument %s with value %s is not a decimal number\n", argument, str);
+        goto parse_uint32_failed;
+    } else if (*end != '\0') {
+        printf("argument %s with value %s has extra characters\n", argument, str);
+        goto parse_uint32_failed;
+    } else if (value > UINT32_MAX) {
+        printf("argument %s with value %s is out of range\n", argument, str);
+        goto parse_uint32_failed;
+    }
+
+    *result = value;
+    return true;
+
+parse_uint32_failed:
     if (callback != NULL) {
         callback(-1);
     }
